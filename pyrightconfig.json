@@ -1,0 +1,16 @@
+{
+  "typeCheckingMode": "off",
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+  "extraPaths": [
+    "/home/datlt/workspace/jesse-trading/.venv/lib/python3.12/site-packages"
+  ],
+  "executionEnvironments": [
+    {
+      "root": "/home/datlt/workspace/jesse-trading",
+      "extraPaths": [
+        "/home/datlt/workspace/jesse-trading/.venv/lib/python3.12/site-packages"
+      ]
+    }
+  ]
+}

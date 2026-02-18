@@ -1,0 +1,17 @@
+[project]
+name = "jesse-trading"
+version = "0.1.0"
+description = "Jesse project with EMA 50/200 strategy and built-in interactive charts"
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "jesse",
+    "setuptools<70",
+    "pip",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = []
+
+[tool.uv]
+dev-dependencies = []
