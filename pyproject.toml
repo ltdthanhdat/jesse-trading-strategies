@@ -1,7 +1,7 @@
 [project]
-name = "jesse-trading"
+name = "jesse-btc-futures-strategies"
 version = "0.1.0"
-description = "Jesse project with EMA 50/200 strategy and built-in interactive charts"
+description = "Jesse strategy collection for BTC-USDT futures with EMA crossover and SMC/FVG setups"
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
 dependencies = [
