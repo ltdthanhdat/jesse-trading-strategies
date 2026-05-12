@@ -1,5 +1,5 @@
 [project]
-name = "jesse-btc-futures-strategies"
+name = "jessie-trading-strategies"
 version = "0.1.0"
 description = "Jesse strategy collection for BTC-USDT futures with EMA crossover and SMC/FVG setups"
 readme = "README.md"

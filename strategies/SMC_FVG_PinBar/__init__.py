@@ -9,7 +9,7 @@ SMC Strategy với FVG + Pin Bar
 - Plot FVG, BOS, CHoCH trên interactive chart
 """
 
-from jesse.strategies import Strategy, cached
+from jesse.strategies import Strategy
 from jesse import utils
 from typing import List, Tuple, Optional
 from dataclasses import dataclass
@@ -28,13 +28,16 @@ class SMC_FVG_PinBar(Strategy):
     # Parameters
     FVG_LOOKBACK = 20
     STRUCTURE_LOOKBACK = 10
+    PIN_BAR_BODY_RATIO = 0.3
+    PIN_BAR_WICK_TO_BODY = 2.0
+    PIN_BAR_CLOSE_EXTREME_RATIO = 0.25
     
     def _get_candle(self, offset: int = 0) -> Optional[Tuple[float, float, float, float]]:
         """Get candle data: (open, close, high, low)"""
         if len(self.candles) <= abs(offset):
             return None
         candle = self.candles[offset]
-        return candle[0], candle[1], candle[2], candle[3]  # open, close, high, low
+        return candle[1], candle[2], candle[3], candle[4]
     
     def _detect_current_fvg(self) -> Optional[FVG]:
         """Detect FVG tại nến hiện tại: Bullish FVG khi high[3] < low[1], Bearish FVG khi low[3] > high[1]"""
@@ -85,10 +88,10 @@ class SMC_FVG_PinBar(Strategy):
             candle_3 = self.candles[i-3]
             candle_1 = self.candles[i-1]
             
-            high_3 = candle_3[2]
-            low_3 = candle_3[3]
-            high_1 = candle_1[2]
-            low_1 = candle_1[3]
+            high_3 = candle_3[3]
+            low_3 = candle_3[4]
+            high_1 = candle_1[3]
+            low_1 = candle_1[4]
             
             # Bullish FVG: high[3] < low[1]
             if high_3 < low_1:
@@ -115,8 +118,8 @@ class SMC_FVG_PinBar(Strategy):
         # Check từ bar_index của FVG đến hiện tại
         for i in range(fvg.bar_index, len(self.candles)):
             candle = self.candles[i]
-            low_price = candle[3]
-            high_price = candle[2]
+            low_price = candle[4]
+            high_price = candle[3]
             
             if fvg.is_bullish:
                 # Bullish FVG bị mitigated khi low <= FVG bottom
@@ -145,15 +148,27 @@ class SMC_FVG_PinBar(Strategy):
             return False
         
         if is_bullish:
-            # Bullish Pin Bar: lower wick >= 2x body, body < 30% range, close gần high
-            return (lower_wick >= 2 * body and 
-                   body < total_range * 0.3 and 
-                   close_price > open_price * 0.6)
+            close_near_high = close_price >= high_price - total_range * self.PIN_BAR_CLOSE_EXTREME_RATIO
+            body_in_upper_range = min(open_price, close_price) >= low_price + total_range * (1 - self.PIN_BAR_BODY_RATIO)
+            return (
+                close_price > open_price and
+                lower_wick >= self.PIN_BAR_WICK_TO_BODY * body and
+                upper_wick <= body and
+                body <= total_range * self.PIN_BAR_BODY_RATIO and
+                close_near_high and
+                body_in_upper_range
+            )
         else:
-            # Bearish Pin Bar: upper wick >= 2x body, body < 30% range, close gần low
-            return (upper_wick >= 2 * body and 
-                   body < total_range * 0.3 and 
-                   close_price < open_price * 1.4)
+            close_near_low = close_price <= low_price + total_range * self.PIN_BAR_CLOSE_EXTREME_RATIO
+            body_in_lower_range = max(open_price, close_price) <= high_price - total_range * (1 - self.PIN_BAR_BODY_RATIO)
+            return (
+                close_price < open_price and
+                upper_wick >= self.PIN_BAR_WICK_TO_BODY * body and
+                lower_wick <= body and
+                body <= total_range * self.PIN_BAR_BODY_RATIO and
+                close_near_low and
+                body_in_lower_range
+            )
     
     def _get_structure_highest_bar(self, lookback: int) -> int:
         """Find structure highest bar index"""
@@ -237,13 +252,7 @@ class SMC_FVG_PinBar(Strategy):
         if not self._is_pin_bar(is_bullish=True):
             return False
         
-        # Check for active Bullish FVG
-        fvg = self._get_active_bullish_fvg()
-        if fvg is None:
-            return False
-        
-        # Check Pin Bar nằm trong FVG
-        return self._is_pin_bar_in_fvg(pin_bar_is_bullish=True, fvg=fvg)
+        return self._get_fvg_containing_pin_bar(is_bullish=True) is not None
     
     def should_short(self) -> bool:
         """Short entry: Bearish FVG + Bearish Pin Bar nằm trong FVG"""
@@ -254,13 +263,7 @@ class SMC_FVG_PinBar(Strategy):
         if not self._is_pin_bar(is_bullish=False):
             return False
         
-        # Check for active Bearish FVG
-        fvg = self._get_active_bearish_fvg()
-        if fvg is None:
-            return False
-        
-        # Check Pin Bar nằm trong FVG
-        return self._is_pin_bar_in_fvg(pin_bar_is_bullish=False, fvg=fvg)
+        return self._get_fvg_containing_pin_bar(is_bullish=False) is not None
     
     def should_cancel_entry(self) -> bool:
         return False
@@ -295,6 +298,7 @@ class SMC_FVG_PinBar(Strategy):
         take_profit = entry + (entry - stop)
         
         qty = self._qty(entry, stop)
+        self.vars["active_fvg"] = fvg
         self.buy = qty, entry
         self.stop_loss = qty, stop
         self.take_profit = qty, take_profit
@@ -317,6 +321,7 @@ class SMC_FVG_PinBar(Strategy):
         take_profit = entry - (stop - entry)
         
         qty = self._qty(entry, stop)
+        self.vars["active_fvg"] = fvg
         self.sell = qty, entry
         self.stop_loss = qty, stop
         self.take_profit = qty, take_profit
@@ -324,28 +329,15 @@ class SMC_FVG_PinBar(Strategy):
     def update_position(self):
         """Exit khi FVG bị mitigated hoàn toàn"""
         if not self.is_open:
+            self.vars.pop("active_fvg", None)
             return
-        
-        # Check stop loss level để tìm FVG tương ứng
-        if self.is_long:
-            # Long: stop loss là FVG bottom
-            fvgs = self._get_all_fvgs()
-            for fvg in reversed(fvgs):
-                if fvg.is_bullish and abs(self.stop_loss - fvg.bottom) < 0.01:  # Match với stop loss
-                    if self._is_fvg_mitigated(fvg):
-                        # FVG bị mitigated, exit
-                        self.liquidate()
-                    break
-        
-        if self.is_short:
-            # Short: stop loss là FVG top
-            fvgs = self._get_all_fvgs()
-            for fvg in reversed(fvgs):
-                if not fvg.is_bullish and abs(self.stop_loss - fvg.top) < 0.01:  # Match với stop loss
-                    if self._is_fvg_mitigated(fvg):
-                        # FVG bị mitigated, exit
-                        self.liquidate()
-                    break
+
+        active_fvg = self.vars.get("active_fvg")
+        if active_fvg is None:
+            return
+
+        if self._is_fvg_mitigated(active_fvg):
+            self.liquidate()
     
     def after(self) -> None:
         """Plot FVG, BOS, CHoCH trên interactive chart"""

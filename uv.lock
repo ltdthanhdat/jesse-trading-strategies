@@ -1086,7 +1086,7 @@ wheels = [
 ]
 
 [[package]]
-name = "jesse-btc-futures-strategies"
+name = "jessie-trading-strategies"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
