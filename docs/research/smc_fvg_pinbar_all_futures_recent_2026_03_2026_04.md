@@ -11,10 +11,10 @@ Universe:
 - total symbols seen trong archive: `700`
 
 Raw outputs:
-- `storage/results/smc_fvg_pinbar_all_futures_results.json`
-- `storage/results/smc_fvg_pinbar_all_futures_results.csv`
+- `storage/results/all_futures/smc_fvg_pinbar_all_futures_results.json`
+- `storage/results/all_futures/smc_fvg_pinbar_all_futures_results.csv`
 - cache 1m theo symbol:
-  - `storage/temp/all_futures/`
+  - `storage/cache/all_futures/`
 
 Summary:
 - `symbols_tested = 671`
@@ -105,3 +105,57 @@ Backtest errors:
 Notes:
 - `backtest_error` hiện là lỗi strategy-level do order price không hợp lệ trên một số coin giá rất nhỏ.
 - file CSV/JSON mới là source đầy đủ để lọc tiếp theo: min trade count, max drawdown, hoặc loại symbol lỗi.
+
+## Portfolio Note
+
+Mô phỏng riêng:
+- dùng `11` symbol:
+  - `PLAY-USDT`
+  - `BIO-USDT`
+  - `SPACE-USDT`
+  - `PENDLE-USDT`
+  - `BR-USDT`
+  - `BASED-USDT`
+  - `D-USDT`
+  - `YGG-USDT`
+  - `STG-USDT`
+  - `我踏马来了-USDT`
+  - `BTC-USDT`
+- cùng window:
+  - `2026-03-01 00:00 UTC -> 2026-04-30 23:59 UTC`
+- account start:
+  - `100 USD`
+- sizing:
+  - mỗi lệnh risk cố định `2 USD`
+  - hiểu là:
+    - hit TP: `+2 USD gross`
+    - hit SL: `-2 USD gross`
+- có tính fee:
+  - `0.04% / side`
+- không compounding
+
+Kết quả portfolio:
+- `total_trades = 82`
+- `wins = 65`
+- `losses = 17`
+- `win_rate = 0.7926829268292683`
+- `gross_pnl_usd = 96.0`
+- `fees_usd = 6.123124339735945`
+- `net_pnl_usd = 89.87687566026405`
+- `ending_balance_usd = 189.87687566026395`
+- `return_pct = 89.87687566026395`
+- `realized_max_drawdown_pct = -6.371119681186464`
+- `max_concurrent_positions = 4`
+
+Per-symbol contribution:
+- `YGG-USDT`: `+15.072947730838251 USD`
+- `PLAY-USDT`: `+13.693370266890854 USD`
+- `SPACE-USDT`: `+13.443436295389088 USD`
+- `PENDLE-USDT`: `+12.799554086793012 USD`
+- `我踏马来了-USDT`: `+7.683029239325639 USD`
+- `STG-USDT`: `+7.670998037119882 USD`
+- `BR-USDT`: `+5.895951797625194 USD`
+- `BTC-USDT`: `+4.523566277876688 USD`
+- `BASED-USDT`: `+3.910396399837711 USD`
+- `D-USDT`: `+3.8444853475164464 USD`
+- `BIO-USDT`: `+1.3391401810512884 USD`

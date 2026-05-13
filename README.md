@@ -96,6 +96,7 @@ Xem file mẫu tại [.env.example](.env.example).
 - [routes.py](routes.py)
 - [strategies/SMC_FVG_PinBar/__init__.py](strategies/SMC_FVG_PinBar/__init__.py)
 - [docker-compose.yml](docker-compose.yml)
+- [storage/README.md](storage/README.md)
 
 ## Ghi chú vận hành
 
