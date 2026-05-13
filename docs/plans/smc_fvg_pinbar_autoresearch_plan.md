@@ -1,9 +1,14 @@
 # SMC_FVG_PinBar Autoresearch Tuning Plan
 
+Trạng thái:
+- active
+- containment phase đã xong
+- phase tiếp theo: tune `pin bar detection`
+
 Mục tiêu:
-- Ứng dụng tư duy của `karpathy/autoresearch` vào việc tune entry logic của `SMC_FVG_PinBar`.
+- Ứng dụng tư duy của `karpathy/autoresearch` vào việc tune logic vào lệnh của `SMC_FVG_PinBar`.
 - Không tune tràn lan.
-- Chỉ tập trung vào phần entry rule, đặc biệt là logic “pin bar trong FVG”.
+- Ở trạng thái hiện tại, chỉ tập trung vào `pin bar detection`.
 
 Plan này không cố bê nguyên repo `autoresearch` sang.
 Plan này chỉ mượn framework làm research:
@@ -53,6 +58,7 @@ Những ý chính nên áp dụng:
 Cho phase này, khóa cứng các phần sau:
 - FVG detection
 - FVG mitigation
+- overlap FVG entry rule
 - stop loss logic
 - take profit logic
 - qty logic
@@ -61,11 +67,11 @@ Cho phase này, khóa cứng các phần sau:
 - symbol `BTC-USDT`
 
 Chỉ cho phép tune:
-- `_is_pin_bar_in_fvg()`
-- nếu cần, tách thêm một helper entry rule riêng cho từng variant
+- `_is_pin_bar()`
+- nếu cần, tách helper pin bar variant riêng
 
 Không cho phép tune trong phase này:
-- `_is_pin_bar()`
+- `_is_pin_bar_in_fvg()`
 - `go_long()`
 - `go_short()`
 - `update_position()`
@@ -77,70 +83,75 @@ Baseline hiện tại:
   - FVG không hết hạn theo số nến
   - chỉ bị remove khi mitigated hoàn toàn
 - logic entry hiện tại:
-  - pin bar phải nằm trọn trong FVG:
-    - `low >= fvg.bottom`
-    - `high <= fvg.top`
+  - pin bar chỉ cần overlap FVG:
+    - `high >= fvg.bottom`
+    - `low <= fvg.top`
 
 Baseline result trên dataset hiện có:
 - khoảng `2024-01-01` đến `2024-03-01`
-- `1 trade`
+- `3 trades`
+- xem chi tiết tại:
+  - `docs/research/smc_fvg_pinbar_backtest_results.md`
 
 ## Research question
 
 Câu hỏi chính:
-- Liệu strategy đang ít trade vì rule “pin bar nằm trong FVG” quá chặt?
+- Liệu strategy đang ít trade vì `pin bar detection` quá chặt?
 
 Câu hỏi phụ:
-- Variant nào nới hợp lý nhất mà không làm strategy spam trade?
+- Variant pin bar nào tăng trade hợp lý mà không làm strategy spam trade?
 
 ## Candidate variants
 
 Chạy theo thứ tự từ chặt đến lỏng.
 
-### Variant 0: Full candle in FVG
+### Variant 0: Current pin bar
 
-Đây là baseline.
-
-Rule:
-- `low >= fvg.bottom`
-- `high <= fvg.top`
+Đây là baseline hiện tại.
 
 Mục đích:
 - mốc để so sánh
 
-### Variant 1: Body in FVG
+### Variant 1: Loose wick/body ratio
 
-Rule:
-- `min(open, close) >= fvg.bottom`
-- `max(open, close) <= fvg.top`
-
-Mục đích:
-- cho wick thò ra ngoài
-- vẫn giữ thân nến phản ứng trong gap
-
-### Variant 2: Close in FVG + rejection wick
-
-Rule gợi ý:
-- bullish:
-  - `close` nằm trong FVG
-  - `low <= fvg.top`
-- bearish:
-  - `close` nằm trong FVG
-  - `high >= fvg.bottom`
+Ý tưởng:
+- giảm ngưỡng `PIN_BAR_WICK_TO_BODY`
+- hoặc nới `PIN_BAR_BODY_RATIO`
 
 Mục đích:
-- nới thêm một chút
-- ưu tiên close nằm trong vùng quan trọng
+- xem pin bar hiện tại có đang quá strict không
 
-### Variant 3: Any overlap with FVG
+### Variant 2: Bỏ ràng buộc màu nến
 
-Rule:
-- `high >= fvg.bottom`
-- `low <= fvg.top`
+Ý tưởng:
+- bullish pin bar không bắt buộc `close > open`
+- bearish pin bar không bắt buộc `close < open`
 
 Mục đích:
-- đo upper bound của sensitivity
-- không mặc định dùng làm final rule
+- cho phép hammer / shooting star màu ngược
+
+### Variant 3: Chỉ cần close near extreme + wick dominance
+
+Ý tưởng:
+- giữ điều kiện wick dài
+- giữ close near high / close near low
+- bỏ bớt constraint body position quá chặt
+
+Mục đích:
+- test một phiên bản pin bar theo intent thay vì theo hình học quá cứng
+
+### Variant 4: Score-based pin bar
+
+Ý tưởng:
+- không dùng toàn bộ điều kiện cứng kiểu all-or-nothing
+- chấm điểm:
+  - wick/body
+  - close near extreme
+  - small body
+- đạt ngưỡng thì nhận là pin bar
+
+Mục đích:
+- chỉ dùng nếu 3 variant trên vẫn quá ít trade
 
 ## Evaluation metrics
 
@@ -208,11 +219,11 @@ Mỗi vòng research làm đúng quy trình này:
 
 Chưa dùng agent loop tự động.
 
-Chạy tay 4 variant:
+Chạy tay vài variant pin bar:
 - baseline
-- body_in_fvg
-- close_in_fvg_with_wick_touch
-- overlap_fvg
+- loose_wick_body_ratio
+- no_color_requirement
+- close_near_extreme_wick_dominance
 
 Mục tiêu:
 - xác định vùng khả thi
@@ -305,8 +316,8 @@ Result:
 Bước tiếp theo hợp lý nhất:
 
 1. Implement harness nhỏ để chạy 4 variant của Plan 2
-   - verify: có bảng so sánh gọn
-2. Chọn 1 variant thắng
+   - verify: có bảng so sánh gọn cho pin bar variants
+2. Chọn 1 variant pin bar thắng
    - verify: thắng trên cùng dataset
 3. Chỉ sau đó mới nghĩ đến agent loop kiểu `autoresearch`
    - verify: tránh automate cái chưa có objective rõ

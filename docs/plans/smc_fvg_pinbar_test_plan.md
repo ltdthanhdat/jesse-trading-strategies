@@ -16,11 +16,16 @@ Baseline hiện tại:
 - Dataset cache đang có:
   - `storage/temp/1704067200000-1709337540000-Binance Perpetual Futures-BTC-USDT.pickle`
 - Kết quả hiện tại với code mới:
-  - `FVG_LOOKBACK = 20`
+  - không có `FVG_LOOKBACK`
+  - rule entry hiện tại là `overlap FVG`
   - `warm_up_candles = 0`
-  - `0 trade`
+  - `3 trades`
 
 ## Plan 1: Sweep `FVG_LOOKBACK`
+
+Trạng thái:
+- done
+- kết luận: không giữ `FVG_LOOKBACK` vì lệch Pine
 
 Mục tiêu:
 - Xác định `FVG_LOOKBACK` bao nhiêu thì strategy bắt đầu có trade.
@@ -40,6 +45,9 @@ Giữ nguyên:
 - Logic containment hiện tại:
   - `low >= fvg.bottom`
   - `high <= fvg.top`
+
+Ghi chú:
+- plan này phản ánh hướng test cũ trước khi strategy quay về logic gần Pine hơn
 
 Cần ghi lại cho mỗi lần chạy:
 - `FVG_LOOKBACK`
@@ -69,6 +77,10 @@ Kết luận cần chốt sau Plan 1:
 
 ## Plan 2: Nới rule “Pin Bar trong FVG”
 
+Trạng thái:
+- done
+- variant thắng: `overlap FVG`
+
 Mục tiêu:
 - Kiểm tra xem entry mất đi vì rule containment quá chặt hay không.
 
@@ -77,7 +89,7 @@ Giả thuyết:
 - Setup thật có thể xuất hiện nếu chỉ cần body nằm trong FVG, hoặc close nằm trong FVG.
 
 Giữ nguyên:
-- `FVG_LOOKBACK = 20`
+- không có `FVG_LOOKBACK`
 - `warm_up_candles = 0`
 - Pin bar detection hiện tại
 
@@ -140,6 +152,10 @@ Kết luận cần chốt sau Plan 2:
 - Chọn variant nào để implement thật
 - Hoặc dừng ở đây và chuyển sang test pin bar logic
 
+Kết luận đã chốt:
+- chọn `overlap FVG`
+- bước tiếp theo là test pin bar detection
+
 ## Thứ tự chạy đề xuất
 
 1. Chạy Plan 1 trước.
@@ -148,7 +164,7 @@ Kết luận cần chốt sau Plan 2:
    - chạy Plan 2 với `FVG_LOOKBACK = 20`
    - verify: có variant containment nào tạo setup hợp lệ không
 3. Chỉ sau khi chốt 1 trong 2 hướng mới sửa code chính thức.
-   - verify: backtest lại baseline và lưu kết quả mới vào `docs/smc_fvg_pinbar_debug_notes.md`
+   - verify: backtest lại baseline và lưu kết quả mới vào `docs/notes/smc_fvg_pinbar_notes.md`
 
 ## Format log kết quả
 
