@@ -6,6 +6,9 @@ Mục đích:
 - lưu kết quả backtest và sweep
 - không trộn với debug note hoặc test plan
 
+Current state summary:
+- xem `docs/state/smc_fvg_pinbar_state.md`
+
 ## Baseline hiện tại
 
 Code state hiện tại:
@@ -141,13 +144,80 @@ Conclusion:
 - rule mới robust hơn theo `warm_up_candles`
 - nhưng trade frequency vẫn thấp trên nhiều market window khác
 
-## Current reading
+## Candle Signal Variant Sweep
 
-Những gì đã rõ:
-- issue `warm_up_candles` đã giảm mạnh
-- lifecycle FVG đã gần Pine hơn
-- entry rule `overlap_fvg` tốt hơn baseline cũ
+Experiment:
+- hypothesis: có thể thay `pin bar` bằng vài candle type khác hoặc union nhiều type để tăng trade frequency mà không làm quality sụp
+- file_changed: `scripts/sweep_smc_fvg_pinbar_signal_variants.py`
 
-Những gì chưa rõ:
-- pin bar detection có đang quá chặt không
-- setup vốn hiếm thật hay đang bỏ lỡ nhiều candle hợp lệ
+Dataset:
+- baseline cache:
+  - `storage/temp/1704067200000-1709337540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- cross-window caches:
+  - `1703689200000-1704067140000-Binance Perpetual Futures-BTC-USDT.pickle`
+  - `1703878200000-1704067140000-Binance Perpetual Futures-BTC-USDT.pickle`
+  - `1740495600000-1740873540000-Binance Perpetual Futures-BTC-USDT.pickle`
+  - `1740873600000-1740959940000-Binance Perpetual Futures-BTC-USDT.pickle`
+  - `1740873600000-1741046340000-Binance Perpetual Futures-BTC-USDT.pickle`
+  - `1748617200000-1748995140000-Binance Perpetual Futures-BTC-USDT.pickle`
+
+Variants tested:
+- `baseline_pin_bar`
+  - current rule
+- `loose_pin_bar`
+  - nới wick/body, nới close near extreme, cho thân nhỏ-vừa
+- `trend_body`
+  - thân dày, close gần extreme, bóng ngắn
+- `rejection_or_trend_union`
+  - `loose_pin_bar OR trend_body`
+- `current_pin_bar_or_trend_body`
+  - `current pin bar OR trend_body`
+
+Result:
+- `baseline_pin_bar`
+  - trades_count: `3` trên baseline
+  - net_profit_percentage: `0.6683005700192093`
+  - max_drawdown: `-0.13520595720001305`
+  - win_rate: `0.6666666666666666`
+  - windows_with_trades: `1/7`
+
+- `loose_pin_bar`
+  - trades_count: `17` trên baseline
+  - net_profit_percentage: `-0.2702986514595835`
+  - max_drawdown: `-1.1150757736605343`
+  - win_rate: `0.4117647058823529`
+  - windows_with_trades: `3/7`
+  - keep_or_discard: `discard`
+  - notes: tăng trade mạnh nhưng quality giảm rõ, không có window nào profit dương
+
+- `trend_body`
+  - trades_count: `11` trên baseline
+  - net_profit_percentage: `0.065543683033595`
+  - max_drawdown: `-1.2061646884020227`
+  - win_rate: `0.5454545454545454`
+  - windows_with_trades: `5/7`
+  - keep_or_discard: `discard`
+  - notes: có thêm trade và mở được thêm window, nhưng drawdown baseline xấu hơn nhiều; profit baseline gần như flat
+
+- `rejection_or_trend_union`
+  - trades_count: `25` trên baseline
+  - net_profit_percentage: `0.8798979755767935`
+  - max_drawdown: `-1.2918460573037804`
+  - win_rate: `0.52`
+  - windows_with_trades: `6/7`
+  - keep_or_discard: `discard`
+  - notes: tăng coverage mạnh nhất, baseline profit nhỉnh hơn nhưng drawdown xấu đi gần 10 lần và thêm nhiều losing window
+
+- `current_pin_bar_or_trend_body`
+  - trades_count: `14` trên baseline
+  - net_profit_percentage: `0.7342860715200159`
+  - max_drawdown: `-1.2061573219687483`
+  - win_rate: `0.5714285714285714`
+  - windows_with_trades: `5/7`
+  - keep_or_discard: `discard`
+  - notes: là union sạch nhất trong nhóm test, nhưng drawdown vẫn xấu hơn baseline quá nhiều
+
+Conclusion:
+- `pin bar` hiện tại vẫn là rule sạch nhất theo risk-adjusted quality trên cache đang có
+- loại nến `trend_body` đáng nhớ vì mở thêm window thật
+- nhưng ở trạng thái hiện tại, chưa có variant candle hoặc union nào đủ tốt để patch vào strategy

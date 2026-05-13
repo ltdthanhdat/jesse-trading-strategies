@@ -138,6 +138,10 @@ Kết quả backtest và sweep đã được tách ra riêng:
 
 - `docs/research/smc_fvg_pinbar_backtest_results.md`
 
+Kết luận working state hiện tại được tách riêng:
+
+- `docs/state/smc_fvg_pinbar_state.md`
+
 ## Kết luận hiện tại
 
 Strategy hiện:
@@ -156,6 +160,32 @@ Nói ngắn gọn:
   - trade frequency vẫn thấp
   - cần kiểm tra tiếp pin bar detection
   - cần kiểm tra thêm liệu `overlap FVG` có giữ chất lượng khi mở rộng dataset hay không
+
+## Update research mới
+
+Đã test thêm hướng:
+
+- bỏ hẳn pin bar để dùng `trend_body`
+- nới `pin bar` thành `loose_pin_bar`
+- union nhiều type:
+  - `loose_pin_bar OR trend_body`
+  - `current pin bar OR trend_body`
+
+Kết luận nhanh:
+
+- `loose_pin_bar`: quá noisy, bỏ
+- `trend_body`: có mở thêm vài window có trade, nhưng drawdown xấu hơn baseline nhiều, chưa giữ
+- union type: coverage tăng mạnh nhưng drawdown degrade rõ
+
+Tức là:
+
+- vấn đề đúng là không chỉ nằm ở chuyện pin bar quá chặt
+- khi mở entry rộng hơn, strategy nhận thêm nhiều trade rác
+- baseline `pin bar` hiện tại vẫn sạch nhất trong các variant đã test
+
+Script đã thêm để chạy sweep:
+
+- `scripts/sweep_smc_fvg_pinbar_signal_variants.py`
 
 ## Phát hiện quan trọng về alignment
 
@@ -181,7 +211,7 @@ Vì thế ở trạng thái hiện tại, strategy phụ thuộc mạnh vào cá
 Ưu tiên cao:
 
 1. Làm strategy bớt nhạy với alignment
-2. Test tiếp pin bar detection
+2. Nếu test tiếp entry candle thì nên thêm filter nhỏ cho `trend_body`, không nên mở rộng pin bar thô
 3. Mở rộng backtest dataset để xem `overlap FVG` có còn ổn không
 
 Ưu tiên phụ:

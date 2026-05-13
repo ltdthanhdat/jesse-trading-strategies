@@ -12,6 +12,7 @@ Use this skill only for iterative tuning of `strategies/SMC_FVG_PinBar/__init__.
 Read these first when the task is about continuing the existing tuning work:
 
 - `docs/README.md`
+- `docs/state/smc_fvg_pinbar_state.md`
 - `docs/notes/smc_fvg_pinbar_notes.md`
 - `docs/research/smc_fvg_pinbar_backtest_results.md`
 - `docs/plans/smc_fvg_pinbar_autoresearch_plan.md`
@@ -23,6 +24,7 @@ Read `docs/plans/smc_fvg_pinbar_test_plan.md` only for historical context.
 - Only change one hypothesis at a time.
 - Default write scope is:
   - `strategies/SMC_FVG_PinBar/__init__.py`
+  - `docs/state/smc_fvg_pinbar_state.md`
   - `docs/notes/smc_fvg_pinbar_notes.md`
   - `docs/research/smc_fvg_pinbar_backtest_results.md`
 - Do not change `routes.py`, infra, Docker, DB config, or unrelated strategies.
@@ -41,13 +43,14 @@ Read `docs/plans/smc_fvg_pinbar_test_plan.md` only for historical context.
 
 ## Standard loop
 
-1. Read the current notes and research result files.
+1. Read the current state file first, then notes and research result files.
 2. State the exact hypothesis in one short sentence.
 3. Make the smallest possible code change for that hypothesis.
 4. Run a comparable backtest on the same dataset first.
 5. Compare against the baseline metrics.
 6. Keep or discard the change explicitly.
 7. Update docs:
+   - state file for latest conclusion / current direction
    - research file for metrics
    - notes file for conclusion if the result changes the working direction
 
@@ -92,7 +95,10 @@ Discard a change when:
 
 ## Output discipline
 
-When you finish a loop, write the result in `docs/research/smc_fvg_pinbar_backtest_results.md`.
+When you finish a loop:
+
+- append metrics/result to `docs/research/smc_fvg_pinbar_backtest_results.md`
+- update `docs/state/smc_fvg_pinbar_state.md` with the latest conclusion
 
 Use this compact structure:
 

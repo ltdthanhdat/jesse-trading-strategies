@@ -12,6 +12,11 @@ Nguồn sự thật cho tài liệu trong repo này.
   - kế hoạch tuning
   - kế hoạch refactor
 
+- `state/`
+  - kết luận working state hiện tại
+  - file đọc nhanh trước khi tiếp tục
+  - không chứa log experiment dài
+
 - `notes/`
   - debug note
   - trạng thái hiện tại
@@ -36,6 +41,12 @@ Nguồn sự thật cho tài liệu trong repo này.
 - `plans/smc_fvg_pinbar_autoresearch_plan.md`
   - plan dùng kiểu `autoresearch` để tune entry logic
 
+- `state/smc_fvg_pinbar_state.md`
+  - current state
+  - current conclusion
+  - open questions
+  - next step
+
 - `notes/smc_fvg_pinbar_notes.md`
   - debug note chính cho strategy `SMC_FVG_PinBar`
 
@@ -54,6 +65,7 @@ Nguồn sự thật cho tài liệu trong repo này.
 ## Rule ngắn
 
 - plan mới -> `plans/`
+- state hiện tại -> `state/`
 - debug note -> `notes/`
 - kết quả test dài -> `research/`
 - template / tài liệu tham chiếu -> `reference/`
