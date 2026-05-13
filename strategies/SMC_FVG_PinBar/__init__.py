@@ -11,7 +11,7 @@ SMC Strategy với FVG + Pin Bar
 
 from jesse.strategies import Strategy
 from jesse import utils
-from typing import List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 
 
@@ -31,13 +31,31 @@ class SMC_FVG_PinBar(Strategy):
     PIN_BAR_BODY_RATIO = 0.3
     PIN_BAR_WICK_TO_BODY = 2.0
     PIN_BAR_CLOSE_EXTREME_RATIO = 0.25
+
+    def _state(self) -> Dict:
+        if "fvg_state" not in self.vars:
+            self.vars["fvg_state"] = {
+                "last_candle_ts": None,
+                "active_bullish": [],
+                "active_bearish": [],
+                "recent_fvgs": [],
+                "signal_bullish_fvg": None,
+                "signal_bearish_fvg": None,
+            }
+        return self.vars["fvg_state"]
     
     def _get_candle(self, offset: int = 0) -> Optional[Tuple[float, float, float, float]]:
         """Get candle data: (open, close, high, low)"""
-        if len(self.candles) <= abs(offset):
+        index = -1 if offset == 0 else offset
+        if len(self.candles) < abs(index):
             return None
-        candle = self.candles[offset]
+        candle = self.candles[index]
         return candle[1], candle[2], candle[3], candle[4]
+
+    def _current_candle_timestamp(self) -> Optional[int]:
+        if len(self.candles) == 0:
+            return None
+        return int(self.candles[-1][0])
     
     def _detect_current_fvg(self) -> Optional[FVG]:
         """Detect FVG tại nến hiện tại: Bullish FVG khi high[3] < low[1], Bearish FVG khi low[3] > high[1]"""
@@ -73,64 +91,36 @@ class SMC_FVG_PinBar(Strategy):
             )
         
         return None
-    
-    def _get_all_fvgs(self) -> List[FVG]:
-        """Scan candles để tìm tất cả FVG"""
-        fvgs = []
-        if len(self.candles) < 4:
-            return fvgs
-        
-        # Scan từ đầu đến hiện tại để tìm FVG
-        for i in range(3, len(self.candles)):
-            if i < 3:
-                continue
-            
-            candle_3 = self.candles[i-3]
-            candle_1 = self.candles[i-1]
-            
-            high_3 = candle_3[3]
-            low_3 = candle_3[4]
-            high_1 = candle_1[3]
-            low_1 = candle_1[4]
-            
-            # Bullish FVG: high[3] < low[1]
-            if high_3 < low_1:
-                fvgs.append(FVG(
-                    top=low_1,
-                    bottom=high_3,
-                    is_bullish=True,
-                    bar_index=i
-                ))
-            
-            # Bearish FVG: low[3] > high[1]
-            if low_3 > high_1:
-                fvgs.append(FVG(
-                    top=low_3,
-                    bottom=high_1,
-                    is_bullish=False,
-                    bar_index=i
-                ))
-        
-        return fvgs
-    
-    def _is_fvg_mitigated(self, fvg: FVG) -> bool:
-        """Check if FVG đã bị mitigated"""
-        # Check từ bar_index của FVG đến hiện tại
-        for i in range(fvg.bar_index, len(self.candles)):
-            candle = self.candles[i]
-            low_price = candle[4]
-            high_price = candle[3]
-            
-            if fvg.is_bullish:
-                # Bullish FVG bị mitigated khi low <= FVG bottom
-                if low_price <= fvg.bottom:
-                    return True
-            else:
-                # Bearish FVG bị mitigated khi high >= FVG top
-                if high_price >= fvg.top:
-                    return True
-        
-        return False
+
+    def _is_fvg_mitigated_by_current_candle(self, fvg: FVG) -> bool:
+        if fvg.is_bullish:
+            return self.low <= fvg.bottom
+        return self.high >= fvg.top
+
+    def _refresh_fvg_state(self) -> None:
+        state = self._state()
+        candle_ts = self._current_candle_timestamp()
+        if candle_ts is None or state["last_candle_ts"] == candle_ts:
+            return
+
+        current_fvg = self._detect_current_fvg()
+        if current_fvg is not None:
+            bucket_name = "active_bullish" if current_fvg.is_bullish else "active_bearish"
+            state[bucket_name].append(current_fvg)
+            state["recent_fvgs"].append(current_fvg)
+            if len(state["recent_fvgs"]) > 5:
+                state["recent_fvgs"] = state["recent_fvgs"][-5:]
+
+        state["active_bullish"] = [
+            fvg for fvg in state["active_bullish"] if not self._is_fvg_mitigated_by_current_candle(fvg)
+        ]
+        state["active_bearish"] = [
+            fvg for fvg in state["active_bearish"] if not self._is_fvg_mitigated_by_current_candle(fvg)
+        ]
+
+        state["signal_bullish_fvg"] = None
+        state["signal_bearish_fvg"] = None
+        state["last_candle_ts"] = candle_ts
     
     def _is_pin_bar(self, is_bullish: bool) -> bool:
         """Detect Pin Bar pattern"""
@@ -213,27 +203,32 @@ class SMC_FVG_PinBar(Strategy):
     
     def _get_active_bullish_fvg(self) -> Optional[FVG]:
         """Get most recent active (non-mitigated) Bullish FVG"""
-        fvgs = self._get_all_fvgs()
-        for fvg in reversed(fvgs):
-            if fvg.is_bullish and not self._is_fvg_mitigated(fvg):
-                return fvg
-        return None
+        self._refresh_fvg_state()
+        state = self._state()
+        if not state["active_bullish"]:
+            return None
+        return state["active_bullish"][-1]
     
     def _get_active_bearish_fvg(self) -> Optional[FVG]:
         """Get most recent active (non-mitigated) Bearish FVG"""
-        fvgs = self._get_all_fvgs()
-        for fvg in reversed(fvgs):
-            if not fvg.is_bullish and not self._is_fvg_mitigated(fvg):
-                return fvg
-        return None
+        self._refresh_fvg_state()
+        state = self._state()
+        if not state["active_bearish"]:
+            return None
+        return state["active_bearish"][-1]
     
     def _get_fvg_containing_pin_bar(self, is_bullish: bool) -> Optional[FVG]:
         """Get FVG mà Pin Bar nằm trong đó"""
-        fvgs = self._get_all_fvgs()
-        for fvg in reversed(fvgs):
-            if fvg.is_bullish == is_bullish and not self._is_fvg_mitigated(fvg):
-                if self._is_pin_bar_in_fvg(is_bullish, fvg):
-                    return fvg
+        self._refresh_fvg_state()
+        state = self._state()
+        active_fvgs = state["active_bullish"] if is_bullish else state["active_bearish"]
+        for fvg in reversed(active_fvgs):
+            if self._is_pin_bar_in_fvg(is_bullish, fvg):
+                if is_bullish:
+                    state["signal_bullish_fvg"] = fvg
+                else:
+                    state["signal_bearish_fvg"] = fvg
+                return fvg
         return None
     
     def _is_pin_bar_in_fvg(self, pin_bar_is_bullish: bool, fvg: FVG) -> bool:
@@ -247,6 +242,7 @@ class SMC_FVG_PinBar(Strategy):
         """Long entry: Bullish FVG + Bullish Pin Bar nằm trong FVG"""
         if self.is_open:
             return False
+        self._refresh_fvg_state()
         
         # Check for Bullish Pin Bar
         if not self._is_pin_bar(is_bullish=True):
@@ -258,6 +254,7 @@ class SMC_FVG_PinBar(Strategy):
         """Short entry: Bearish FVG + Bearish Pin Bar nằm trong FVG"""
         if self.is_open:
             return False
+        self._refresh_fvg_state()
         
         # Check for Bearish Pin Bar
         if not self._is_pin_bar(is_bullish=False):
@@ -282,8 +279,9 @@ class SMC_FVG_PinBar(Strategy):
     
     def go_long(self):
         """Long position: entry tại close, SL dưới FVG bottom, TP R:R 1:1"""
-        # Get FVG mà Pin Bar nằm trong đó
-        fvg = self._get_fvg_containing_pin_bar(is_bullish=True)
+        self._refresh_fvg_state()
+        state = self._state()
+        fvg = state.get("signal_bullish_fvg") or self._get_fvg_containing_pin_bar(is_bullish=True)
         if fvg is None:
             return
         
@@ -305,8 +303,9 @@ class SMC_FVG_PinBar(Strategy):
     
     def go_short(self):
         """Short position: entry tại close, SL trên FVG top, TP R:R 1:1"""
-        # Get FVG mà Pin Bar nằm trong đó
-        fvg = self._get_fvg_containing_pin_bar(is_bullish=False)
+        self._refresh_fvg_state()
+        state = self._state()
+        fvg = state.get("signal_bearish_fvg") or self._get_fvg_containing_pin_bar(is_bullish=False)
         if fvg is None:
             return
         
@@ -328,6 +327,7 @@ class SMC_FVG_PinBar(Strategy):
     
     def update_position(self):
         """Exit khi FVG bị mitigated hoàn toàn"""
+        self._refresh_fvg_state()
         if not self.is_open:
             self.vars.pop("active_fvg", None)
             return
@@ -336,14 +336,13 @@ class SMC_FVG_PinBar(Strategy):
         if active_fvg is None:
             return
 
-        if self._is_fvg_mitigated(active_fvg):
+        if self._is_fvg_mitigated_by_current_candle(active_fvg):
             self.liquidate()
     
     def after(self) -> None:
         """Plot FVG, BOS, CHoCH trên interactive chart"""
-        # Plot FVG lines
-        fvgs = self._get_all_fvgs()
-        for fvg in fvgs[-5:]:  # Plot 5 FVG gần nhất
+        self._refresh_fvg_state()
+        for fvg in self._state()["recent_fvgs"]:
             if fvg.is_bullish:
                 self.add_line_to_candle_chart(f"FVG_Bullish_Top_{fvg.bar_index}", fvg.top)
                 self.add_line_to_candle_chart(f"FVG_Bullish_Bottom_{fvg.bar_index}", fvg.bottom)
