@@ -178,6 +178,22 @@ Update mới nhất:
   - thêm body cap làm mất lợi thế mới
 - strategy thật đã patch theo winner và verify lại trên cache windows
 
+Update 2026-05-13:
+
+- có test thêm hướng lấy từ FVG docs ngoài repo:
+  - chờ candle `displacement` đóng mạnh rời khỏi FVG sau khi có reclaim
+  - gần ý `rejection candle / strong close / displacement confirmation`
+- variant `engulfing reclaim` bị loại:
+  - tăng lệnh nhưng phá baseline quá mạnh
+- variant `displacement_break_wick_reclaim` được giữ tạm:
+  - baseline giữ nguyên `4 trades`, profit và drawdown không xấu hơn
+  - `2026-04` standalone cải thiện từ `3 trades / 0.0275%` lên `5 trades / 0.4258%`
+  - `2026-03 -> 2026-04` continuous cải thiện từ `-0.4411%` lên `-0.0447%`
+  - đổi lại có thêm `1` losing short ở cache `1740495600000-1740873540000-...`
+- kết luận:
+  - đây là union đầu tiên tăng coverage mà không làm baseline xấu đi
+  - nhưng chưa thể xem là solved vì trade mới vẫn chưa sạch hoàn toàn
+
 ## Phát hiện quan trọng về alignment
 
 Trong lúc debug có thấy behavior như sau:
@@ -186,6 +202,21 @@ Trong lúc debug có thấy behavior như sau:
 - điều này làm setup FVG + pin bar biến mất hoàn toàn
 
 Vì thế ở trạng thái hiện tại, strategy phụ thuộc mạnh vào cách Jesse bucket nến `1h`.
+
+Update 2026-05-13:
+
+- với winner hiện tại `pin_bar OR trend_body_wick_reclaim`, sweep lại `warm_up_candles = 0, 24, 60, 120, 240` trên toàn bộ 7 cache không còn cho ra khác biệt
+- tức là issue `warm_up_candles` cũ hiện không còn tái hiện trên bộ cache đang dùng
+- concern còn lại nghiêng về market coverage và alignment trên dataset khác, không phải warmup count đơn thuần
+- cắt riêng baseline `2024-01-01` đến `2024-03-01` thành các window nhỏ cũng cho thấy coverage thấp:
+  - trade chỉ xuất hiện ở cụm `2024-01-01 -> 2024-01-07`
+  - và cụm `2024-02-05 -> 2024-02-11`
+- test data gần đây hơn theo UTC:
+  - `2026-03` có `1 trade`, dương nhẹ
+  - `2026-04` có `3 trades`, gần như flat dương
+  - nhưng run continuous `2026-03 -> 2026-04` lại sinh thêm `1 short` loss lớn ở `2026-04-09 -> 2026-04-11`
+- passing March vào `warmup_candles` cho April không tái tạo trade extra đó
+- đây là dấu hiệu cần debug tiếp theo ở boundary / continuity giữa window, không phải chỉ do warmup count
 
 ## Những gì đã kiểm tra trong quá trình debug
 

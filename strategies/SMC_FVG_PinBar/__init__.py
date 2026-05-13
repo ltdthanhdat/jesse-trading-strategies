@@ -195,11 +195,42 @@ class SMC_FVG_PinBar(Strategy):
             upper_wick <= total_range * 0.2
         )
 
+    def _is_displacement_break(self, is_bullish: bool) -> bool:
+        """Detect displacement close that breaks the previous candle extreme"""
+        if len(self.candles) < 2:
+            return False
+
+        open_price, close_price, high_price, low_price = self._get_candle(0)
+        _, _, prev_high, prev_low = self._get_candle(-2)
+
+        body = abs(close_price - open_price)
+        total_range = high_price - low_price
+        if total_range == 0:
+            return False
+
+        body_ratio = body / total_range
+        if is_bullish:
+            return (
+                close_price > open_price and
+                body_ratio >= 0.6 and
+                close_price > prev_high and
+                close_price >= high_price - total_range * 0.2
+            )
+
+        return (
+            close_price < open_price and
+            body_ratio >= 0.6 and
+            close_price < prev_low and
+            close_price <= low_price + total_range * 0.2
+        )
+
     def _entry_signal_kind(self, is_bullish: bool) -> Optional[str]:
         if self._is_pin_bar(is_bullish):
             return "pin_bar"
         if self._is_trend_body(is_bullish):
             return "trend_body"
+        if self._is_displacement_break(is_bullish):
+            return "displacement"
         return None
     
     def _get_active_bullish_fvg(self) -> Optional[FVG]:
@@ -242,7 +273,7 @@ class SMC_FVG_PinBar(Strategy):
             return False
 
         signal_kind = self.vars.get("entry_signal_kind")
-        if signal_kind != "trend_body":
+        if signal_kind not in {"trend_body", "displacement"}:
             return True
 
         fvg_height = fvg.top - fvg.bottom
@@ -351,18 +382,10 @@ class SMC_FVG_PinBar(Strategy):
         self.take_profit = qty, take_profit
     
     def update_position(self):
-        """Exit khi FVG bị mitigated hoàn toàn"""
-        self._refresh_fvg_state()
+        """Manage open-position state; exits are handled by SL/TP orders."""
         if not self.is_open:
             self.vars.pop("active_fvg", None)
-            return
-
-        active_fvg = self.vars.get("active_fvg")
-        if active_fvg is None:
-            return
-
-        if self._is_fvg_mitigated_by_current_candle(active_fvg):
-            self.liquidate()
+            self.vars.pop("entry_signal_kind", None)
     
     def after(self) -> None:
         """Plot FVG trên interactive chart"""

@@ -2,6 +2,15 @@
   "typeCheckingMode": "off",
   "reportMissingImports": true,
   "reportMissingTypeStubs": false,
-  "venvPath": ".",
-  "venv": ".venv"
+  "extraPaths": [
+    "/home/thanhdatle/workspace/jesse-trading-strategies/.venv/lib/python3.12/site-packages"
+  ],
+  "executionEnvironments": [
+    {
+      "root": "/home/thanhdatle/workspace/jesse-trading-strategies",
+      "extraPaths": [
+        "/home/thanhdatle/workspace/jesse-trading-strategies/.venv/lib/python3.12/site-packages"
+      ]
+    }
+  ]
 }
