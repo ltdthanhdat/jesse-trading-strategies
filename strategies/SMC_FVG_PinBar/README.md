@@ -42,20 +42,12 @@ is_bullish_pin = lower_wick >= 2 * body and body < total_range * 0.3 and close >
 is_bearish_pin = upper_wick >= 2 * body and body < total_range * 0.3 and close < open * 1.4
 ```
 
-#### 1.3 BOS (Break of Structure) Detection
-- **Bullish BOS**: Giá phá vỡ structure high (đỉnh trước đó)
-- **Bearish BOS**: Giá phá vỡ structure low (đáy trước đó)
-
-Logic từ Pine Script:
-- Track structure high/low trong lookback period (10 nến)
-- BOS khi giá phá vỡ structure với điều kiện:
-  - Close phá vỡ (hoặc low/high tùy setting)
-  - 3 nến trước đó không phá vỡ structure
-  - Bar index > structure start index
-
-#### 1.4 CHoCH (Change of Character) Detection
-- **Bullish CHoCH**: Structure đổi từ bearish sang bullish (phá structure high khi đang trong downtrend)
-- **Bearish CHoCH**: Structure đổi từ bullish sang bearish (phá structure low khi đang trong uptrend)
+#### 1.3 Scope hiện tại
+- Strategy hiện chỉ dùng:
+  - FVG detection
+  - Pin Bar detection
+  - Entry theo Pin Bar nằm trong FVG còn hiệu lực
+- BOS/CHoCH không nằm trong logic vào lệnh hiện tại.
 
 ### 2. Entry Logic
 
@@ -106,15 +98,7 @@ Jesse chỉ hỗ trợ `add_line_to_candle_chart()` để vẽ đường thẳng
    - Màu xanh cho bullish FVG, đỏ cho bearish FVG
    - Có thể dùng label hoặc chỉ vẽ đường
 
-2. **BOS Lines**:
-   - Vẽ đường ngang tại structure break level khi có BOS
-   - Label "BOS" tại điểm break (nếu hỗ trợ)
-
-3. **CHoCH Lines**:
-   - Vẽ đường ngang tại structure change level khi có CHoCH
-   - Label "CHoCH" tại điểm change (nếu hỗ trợ)
-
-**Lưu ý**: Không plot Current Structure liên tục vì sẽ tạo quá nhiều đường chồng chéo. BOS/CHoCH lines đã đủ để hiểu structure changes.
+**Lưu ý**: Hiện tại chỉ plot FVG lines.
 
 ## Implementation Steps
 
@@ -122,12 +106,11 @@ Jesse chỉ hỗ trợ `add_line_to_candle_chart()` để vẽ đường thẳng
 2. ✅ Tạo `__init__.py` với class `SMC_FVG_PinBar(Strategy)`
 3. ✅ Implement FVG detection và storage
 4. ✅ Implement Pin Bar detection
-5. ✅ Implement BOS/CHoCH detection
-6. ✅ Implement entry logic (should_long/short)
-7. ✅ Implement position management (go_long/short)
-8. ✅ Implement plotting trong `after()`
-9. ✅ Update `routes.py` để thêm strategy mới
-10. ✅ Test và debug
+5. ✅ Implement entry logic (should_long/short)
+6. ✅ Implement position management (go_long/short)
+7. ✅ Implement plotting trong `after()`
+8. ✅ Update `routes.py` để thêm strategy mới
+9. ✅ Test và debug
 
 ## Files Structure
 
@@ -140,7 +123,6 @@ strategies/
 ## Notes
 
 - FVG cần được lưu trong list để track mitigation
-- Structure high/low cần được update liên tục
 - Pin Bar detection có thể cần fine-tune parameters
 - Interactive chart chỉ hỗ trợ lines, không có boxes như Pine Script
 - Có thể thêm các parameters để điều chỉnh (pin bar ratio, FVG lookback, etc.)

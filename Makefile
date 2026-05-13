@@ -22,7 +22,7 @@ ps:
 	docker compose ps
 
 run:
-	./.venv/bin/jesse run
+	uv run jesse run
 
 check:
-	./.venv/bin/python -m py_compile routes.py strategies/EMA50_200/__init__.py strategies/SMC_FVG_PinBar/__init__.py
+	uv run python -m py_compile routes.py strategies/EMA50_200/__init__.py strategies/SMC_FVG_PinBar/__init__.py

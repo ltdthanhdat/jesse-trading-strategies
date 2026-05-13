@@ -6,12 +6,12 @@ SMC Strategy với FVG + Pin Bar
 - Stop loss: dưới FVG bottom (long) hoặc trên FVG top (short)
 - Take profit: R:R = 1:1
 - Exit khi FVG bị mitigated hoàn toàn
-- Plot FVG, BOS, CHoCH trên interactive chart
+- Plot FVG trên interactive chart
 """
 
 from jesse.strategies import Strategy
 from jesse import utils
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, Tuple, Optional
 from dataclasses import dataclass
 
 
@@ -27,7 +27,6 @@ class FVG:
 class SMC_FVG_PinBar(Strategy):
     # Parameters
     FVG_LOOKBACK = 20
-    STRUCTURE_LOOKBACK = 10
     PIN_BAR_BODY_RATIO = 0.3
     PIN_BAR_WICK_TO_BODY = 2.0
     PIN_BAR_CLOSE_EXTREME_RATIO = 0.25
@@ -97,6 +96,9 @@ class SMC_FVG_PinBar(Strategy):
             return self.low <= fvg.bottom
         return self.high >= fvg.top
 
+    def _is_fvg_within_lookback(self, fvg: FVG) -> bool:
+        return len(self.candles) - 1 - fvg.bar_index <= self.FVG_LOOKBACK
+
     def _refresh_fvg_state(self) -> None:
         state = self._state()
         candle_ts = self._current_candle_timestamp()
@@ -112,10 +114,14 @@ class SMC_FVG_PinBar(Strategy):
                 state["recent_fvgs"] = state["recent_fvgs"][-5:]
 
         state["active_bullish"] = [
-            fvg for fvg in state["active_bullish"] if not self._is_fvg_mitigated_by_current_candle(fvg)
+            fvg
+            for fvg in state["active_bullish"]
+            if self._is_fvg_within_lookback(fvg) and not self._is_fvg_mitigated_by_current_candle(fvg)
         ]
         state["active_bearish"] = [
-            fvg for fvg in state["active_bearish"] if not self._is_fvg_mitigated_by_current_candle(fvg)
+            fvg
+            for fvg in state["active_bearish"]
+            if self._is_fvg_within_lookback(fvg) and not self._is_fvg_mitigated_by_current_candle(fvg)
         ]
 
         state["signal_bullish_fvg"] = None
@@ -159,47 +165,6 @@ class SMC_FVG_PinBar(Strategy):
                 close_near_low and
                 body_in_lower_range
             )
-    
-    def _get_structure_highest_bar(self, lookback: int) -> int:
-        """Find structure highest bar index"""
-        if len(self.candles) <= lookback:
-            lookback = len(self.candles) - 1
-        
-        max_bar_idx = 0
-        max_high = self.candles[-lookback-1][2]  # high
-        
-        for i in range(-lookback-1, 0):
-            if self.candles[i][2] > max_high:  # high
-                max_high = self.candles[i][2]
-                max_bar_idx = i
-        
-        return max_bar_idx
-    
-    def _get_structure_lowest_bar(self, lookback: int) -> int:
-        """Find structure lowest bar index"""
-        if len(self.candles) <= lookback:
-            lookback = len(self.candles) - 1
-        
-        min_bar_idx = 0
-        min_low = self.candles[-lookback-1][3]  # low
-        
-        for i in range(-lookback-1, 0):
-            if self.candles[i][3] < min_low:  # low
-                min_low = self.candles[i][3]
-                min_bar_idx = i
-        
-        return min_bar_idx
-    
-    def _get_structure_breaks(self) -> List[Tuple[float, bool, bool]]:
-        """Get BOS/CHoCH events: returns list of (price, is_bos, is_choch)"""
-        breaks = []
-        if len(self.candles) < self.STRUCTURE_LOOKBACK + 4:
-            return breaks
-        
-        # Simplified: track structure và detect breaks
-        # This is a simplified version - full implementation would track structure state
-        # For now, return empty list (can be enhanced later)
-        return breaks
     
     def _get_active_bullish_fvg(self) -> Optional[FVG]:
         """Get most recent active (non-mitigated) Bullish FVG"""
@@ -340,7 +305,7 @@ class SMC_FVG_PinBar(Strategy):
             self.liquidate()
     
     def after(self) -> None:
-        """Plot FVG, BOS, CHoCH trên interactive chart"""
+        """Plot FVG trên interactive chart"""
         self._refresh_fvg_state()
         for fvg in self._state()["recent_fvgs"]:
             if fvg.is_bullish:
@@ -349,11 +314,3 @@ class SMC_FVG_PinBar(Strategy):
             else:
                 self.add_line_to_candle_chart(f"FVG_Bearish_Top_{fvg.bar_index}", fvg.top)
                 self.add_line_to_candle_chart(f"FVG_Bearish_Bottom_{fvg.bar_index}", fvg.bottom)
-        
-        # Plot BOS/CHoCH lines (simplified - can be enhanced)
-        breaks = self._get_structure_breaks()
-        for i, (price, is_bos, is_choch) in enumerate(breaks[-10:]):  # Plot 10 breaks gần nhất
-            if is_bos:
-                self.add_line_to_candle_chart(f"BOS_{i}", price)
-            elif is_choch:
-                self.add_line_to_candle_chart(f"CHoCH_{i}", price)

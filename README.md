@@ -89,17 +89,17 @@ make run
 - Redis port: `REDIS_PORT`
 - Dashboard password: `PASSWORD`
 
-Xem file mẫu tại [.env.example](/home/datlt/workspace/jesse-trading-strategies/.env.example:1).
+Xem file mẫu tại [.env.example](.env.example).
 
 ## File quan trọng
 
-- [pyproject.toml](/home/datlt/workspace/jesse-trading-strategies/pyproject.toml:1)
-- [routes.py](/home/datlt/workspace/jesse-trading-strategies/routes.py:1)
-- [strategies/EMA50_200/__init__.py](/home/datlt/workspace/jesse-trading-strategies/strategies/EMA50_200/__init__.py:1)
-- [strategies/SMC_FVG_PinBar/__init__.py](/home/datlt/workspace/jesse-trading-strategies/strategies/SMC_FVG_PinBar/__init__.py:1)
-- [docker-compose.yml](/home/datlt/workspace/jesse-trading-strategies/docker-compose.yml:1)
+- [pyproject.toml](pyproject.toml)
+- [routes.py](routes.py)
+- [strategies/EMA50_200/__init__.py](strategies/EMA50_200/__init__.py)
+- [strategies/SMC_FVG_PinBar/__init__.py](strategies/SMC_FVG_PinBar/__init__.py)
+- [docker-compose.yml](docker-compose.yml)
 
 ## Ghi chú vận hành
 
-- Sau khi đổi tên thư mục project, một số script trong `.venv/bin/` có thể giữ shebang cũ. Nếu `./.venv/bin/jesse` lỗi đường dẫn Python, chạy lại `uv sync` hoặc tạo lại `.venv`.
+- Sau khi đổi tên thư mục project hoặc đổi máy, nếu môi trường Python bị lệch, chạy lại `uv sync`.
 - Repo hiện không có test suite riêng; kiểm tra cơ bản nên bắt đầu từ `py_compile`, `jesse run`, rồi backtest trong giao diện Jesse.
