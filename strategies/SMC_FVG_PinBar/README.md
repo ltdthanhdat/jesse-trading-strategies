@@ -54,14 +54,14 @@ is_bearish_pin = upper_wick >= 2 * body and body < total_range * 0.3 and close <
 #### 2.1 Long Entry (`should_long()`)
 Điều kiện:
 1. Không có position đang mở
-2. Có **Bullish FVG** gần đây (chưa bị mitigated)
+2. Có **Bullish FVG** đang còn hiệu lực (chưa bị mitigated)
 3. Nến hiện tại là **Bullish Pin Bar**
 4. Pin Bar nằm **trong** FVG: `low >= FVG_bottom` và `high <= FVG_top`
 
 #### 2.2 Short Entry (`should_short()`)
 Điều kiện:
 1. Không có position đang mở
-2. Có **Bearish FVG** gần đây (chưa bị mitigated)
+2. Có **Bearish FVG** đang còn hiệu lực (chưa bị mitigated)
 3. Nến hiện tại là **Bearish Pin Bar**
 4. Pin Bar nằm **trong** FVG: `low >= FVG_bottom` và `high <= FVG_top`
 
@@ -125,4 +125,4 @@ strategies/
 - FVG cần được lưu trong list để track mitigation
 - Pin Bar detection có thể cần fine-tune parameters
 - Interactive chart chỉ hỗ trợ lines, không có boxes như Pine Script
-- Có thể thêm các parameters để điều chỉnh (pin bar ratio, FVG lookback, etc.)
+- Có thể thêm các parameters để điều chỉnh (pin bar ratio, etc.)

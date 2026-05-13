@@ -26,7 +26,6 @@ class FVG:
 
 class SMC_FVG_PinBar(Strategy):
     # Parameters
-    FVG_LOOKBACK = 20
     PIN_BAR_BODY_RATIO = 0.3
     PIN_BAR_WICK_TO_BODY = 2.0
     PIN_BAR_CLOSE_EXTREME_RATIO = 0.25
@@ -96,9 +95,6 @@ class SMC_FVG_PinBar(Strategy):
             return self.low <= fvg.bottom
         return self.high >= fvg.top
 
-    def _is_fvg_within_lookback(self, fvg: FVG) -> bool:
-        return len(self.candles) - 1 - fvg.bar_index <= self.FVG_LOOKBACK
-
     def _refresh_fvg_state(self) -> None:
         state = self._state()
         candle_ts = self._current_candle_timestamp()
@@ -116,12 +112,12 @@ class SMC_FVG_PinBar(Strategy):
         state["active_bullish"] = [
             fvg
             for fvg in state["active_bullish"]
-            if self._is_fvg_within_lookback(fvg) and not self._is_fvg_mitigated_by_current_candle(fvg)
+            if not self._is_fvg_mitigated_by_current_candle(fvg)
         ]
         state["active_bearish"] = [
             fvg
             for fvg in state["active_bearish"]
-            if self._is_fvg_within_lookback(fvg) and not self._is_fvg_mitigated_by_current_candle(fvg)
+            if not self._is_fvg_mitigated_by_current_candle(fvg)
         ]
 
         state["signal_bullish_fvg"] = None
@@ -201,7 +197,7 @@ class SMC_FVG_PinBar(Strategy):
         if pin_bar_is_bullish != fvg.is_bullish:
             return False
         
-        return self.low >= fvg.bottom and self.high <= fvg.top
+        return self.high >= fvg.bottom and self.low <= fvg.top
     
     def should_long(self) -> bool:
         """Long entry: Bullish FVG + Bullish Pin Bar nằm trong FVG"""
