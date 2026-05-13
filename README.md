@@ -4,9 +4,8 @@ Bộ strategy cho [Jesse](https://docs.jesse.trade/) dùng để nghiên cứu v
 
 ## Có gì trong repo
 
-- `EMA50_200`: vào lệnh theo EMA 50/200 crossover, stop loss theo nến hiện tại, take profit `1R`.
 - `SMC_FVG_PinBar`: vào lệnh theo Fair Value Gap + Pin Bar, stop loss theo biên FVG, take profit `1R`.
-- `routes.py`: đang cấu hình cả hai strategy trên `Binance Futures`, timeframe `1h`.
+- `routes.py`: đang cấu hình `SMC_FVG_PinBar` trên `Binance Futures`, timeframe `1h`.
 
 ## Yêu cầu
 
@@ -95,7 +94,6 @@ Xem file mẫu tại [.env.example](.env.example).
 
 - [pyproject.toml](pyproject.toml)
 - [routes.py](routes.py)
-- [strategies/EMA50_200/__init__.py](strategies/EMA50_200/__init__.py)
 - [strategies/SMC_FVG_PinBar/__init__.py](strategies/SMC_FVG_PinBar/__init__.py)
 - [docker-compose.yml](docker-compose.yml)
 

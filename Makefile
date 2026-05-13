@@ -25,4 +25,4 @@ run:
 	uv run jesse run
 
 check:
-	uv run python -m py_compile routes.py strategies/EMA50_200/__init__.py strategies/SMC_FVG_PinBar/__init__.py
+	uv run python -m py_compile routes.py strategies/SMC_FVG_PinBar/__init__.py

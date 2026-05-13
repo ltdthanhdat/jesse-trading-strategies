@@ -71,7 +71,7 @@ is_bearish_pin = upper_wick >= 2 * body and body < total_range * 0.3 and close <
 - **Entry**: Giá hiện tại (close của Pin Bar)
 - **Stop Loss**: Dưới FVG bottom (`high[3]` của FVG)
 - **Take Profit**: R:R = 1:1 → `entry + (entry - stop_loss)`
-- **Position Size**: Risk 2% balance (giống EMA50_200)
+- **Position Size**: Risk 2% balance
 
 #### 3.2 Short Position (`go_short()`)
 - **Entry**: Giá hiện tại (close của Pin Bar)
