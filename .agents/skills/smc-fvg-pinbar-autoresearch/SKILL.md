@@ -29,7 +29,7 @@ Read `docs/plans/smc_fvg_pinbar_test_plan.md` only for historical context.
   - `docs/research/smc_fvg_pinbar_backtest_results.md`
 - Do not change `routes.py`, infra, Docker, DB config, or unrelated strategies.
 - Do not change stop loss, take profit, qty logic, or FVG lifecycle unless the user explicitly asks.
-- Current active phase is pin bar tuning. Do not retest old FVG containment ideas unless the user asks.
+- Current active phase is entry robustness after selecting the current signal. Do not retest old FVG containment ideas or raw candle-signal expansion unless the user asks.
 
 ## Baseline assumptions
 
@@ -38,8 +38,11 @@ Read `docs/plans/smc_fvg_pinbar_test_plan.md` only for historical context.
   - FVG removed only when fully mitigated
 - Current entry containment is already chosen:
   - overlap FVG
+- Current entry signal is already chosen:
+  - `pin_bar`
+  - or `trend_body` with `wick reclaim` inside FVG
 - Current open question:
-  - is `_is_pin_bar()` too strict?
+  - does the chosen entry logic stay robust on broader datasets and alignment conditions?
 
 ## Standard loop
 
@@ -97,7 +100,7 @@ Discard a change when:
 
 When you finish a loop:
 
-- append metrics/result to `docs/research/smc_fvg_pinbar_backtest_results.md`
+- append one experiment block to `docs/research/smc_fvg_pinbar_backtest_results.md`
 - update `docs/state/smc_fvg_pinbar_state.md` with the latest conclusion
 
 Use this compact structure:

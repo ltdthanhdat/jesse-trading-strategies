@@ -161,6 +161,46 @@ class SMC_FVG_PinBar(Strategy):
                 close_near_low and
                 body_in_lower_range
             )
+
+    def _is_trend_body(self, is_bullish: bool) -> bool:
+        """Detect strong body candle with short opposite wick"""
+        if len(self.candles) < 1:
+            return False
+
+        open_price, close_price, high_price, low_price = self._get_candle(0)
+
+        body = abs(close_price - open_price)
+        upper_wick = high_price - max(close_price, open_price)
+        lower_wick = min(close_price, open_price) - low_price
+        total_range = high_price - low_price
+
+        if total_range == 0:
+            return False
+
+        body_ratio = body / total_range
+        if is_bullish:
+            return (
+                close_price > open_price and
+                body_ratio >= 0.55 and
+                close_price >= high_price - total_range * 0.15 and
+                upper_wick <= total_range * 0.15 and
+                lower_wick <= total_range * 0.2
+            )
+
+        return (
+            close_price < open_price and
+            body_ratio >= 0.55 and
+            close_price <= low_price + total_range * 0.15 and
+            lower_wick <= total_range * 0.15 and
+            upper_wick <= total_range * 0.2
+        )
+
+    def _entry_signal_kind(self, is_bullish: bool) -> Optional[str]:
+        if self._is_pin_bar(is_bullish):
+            return "pin_bar"
+        if self._is_trend_body(is_bullish):
+            return "trend_body"
+        return None
     
     def _get_active_bullish_fvg(self) -> Optional[FVG]:
         """Get most recent active (non-mitigated) Bullish FVG"""
@@ -196,19 +236,42 @@ class SMC_FVG_PinBar(Strategy):
         """Check if Pin Bar nằm trong FVG"""
         if pin_bar_is_bullish != fvg.is_bullish:
             return False
-        
-        return self.high >= fvg.bottom and self.low <= fvg.top
+
+        overlaps_fvg = self.high >= fvg.bottom and self.low <= fvg.top
+        if not overlaps_fvg:
+            return False
+
+        signal_kind = self.vars.get("entry_signal_kind")
+        if signal_kind != "trend_body":
+            return True
+
+        fvg_height = fvg.top - fvg.bottom
+        if fvg_height <= 0:
+            return False
+
+        _, close_price, _, _ = self._get_candle(0)
+        if pin_bar_is_bullish:
+            return (
+                self.low <= fvg.bottom + fvg_height * 0.35 and
+                close_price >= fvg.bottom + fvg_height * 0.65
+            )
+
+        return (
+            self.high >= fvg.top - fvg_height * 0.35 and
+            close_price <= fvg.bottom + fvg_height * 0.35
+        )
     
     def should_long(self) -> bool:
         """Long entry: Bullish FVG + Bullish Pin Bar nằm trong FVG"""
         if self.is_open:
             return False
         self._refresh_fvg_state()
-        
-        # Check for Bullish Pin Bar
-        if not self._is_pin_bar(is_bullish=True):
+
+        signal_kind = self._entry_signal_kind(is_bullish=True)
+        self.vars["entry_signal_kind"] = signal_kind
+        if signal_kind is None:
             return False
-        
+
         return self._get_fvg_containing_pin_bar(is_bullish=True) is not None
     
     def should_short(self) -> bool:
@@ -216,11 +279,12 @@ class SMC_FVG_PinBar(Strategy):
         if self.is_open:
             return False
         self._refresh_fvg_state()
-        
-        # Check for Bearish Pin Bar
-        if not self._is_pin_bar(is_bullish=False):
+
+        signal_kind = self._entry_signal_kind(is_bullish=False)
+        self.vars["entry_signal_kind"] = signal_kind
+        if signal_kind is None:
             return False
-        
+
         return self._get_fvg_containing_pin_bar(is_bullish=False) is not None
     
     def should_cancel_entry(self) -> bool:

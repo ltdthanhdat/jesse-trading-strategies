@@ -4,7 +4,7 @@ Ngày cập nhật: 2026-05-13
 
 ## Mục tiêu
 
-Lưu lại trạng thái debug hiện tại của strategy `strategies/SMC_FVG_PinBar/__init__.py` để lần sau tiếp tục nhanh.
+Lưu lại debug history và các phát hiện kỹ thuật của strategy `strategies/SMC_FVG_PinBar/__init__.py`.
 
 ## Những lỗi đã tìm thấy và đã sửa
 
@@ -142,25 +142,6 @@ Kết luận working state hiện tại được tách riêng:
 
 - `docs/state/smc_fvg_pinbar_state.md`
 
-## Kết luận hiện tại
-
-Strategy hiện:
-
-- đã chạy nhanh
-- đã có thể phát sinh trade thật
-- đã bám Pine hơn ở phần lifecycle của FVG
-- entry rule đã được nới sang `overlap FVG`
-- không còn nhạy với `warm_up_candles` trên baseline
-- nhưng vẫn có trade frequency thấp trên nhiều window khác
-
-Nói ngắn gọn:
-
-- vấn đề tốc độ: đã xử lý
-- vấn đề logic còn lại:
-  - trade frequency vẫn thấp
-  - cần kiểm tra tiếp pin bar detection
-  - cần kiểm tra thêm liệu `overlap FVG` có giữ chất lượng khi mở rộng dataset hay không
-
 ## Update research mới
 
 Đã test thêm hướng:
@@ -186,6 +167,16 @@ Tức là:
 Script đã thêm để chạy sweep:
 
 - `scripts/sweep_smc_fvg_pinbar_signal_variants.py`
+- `scripts/sweep_smc_fvg_pinbar_entry_signal_filters.py`
+
+Update mới nhất:
+
+- winner đã chốt cho phase entry signal:
+  - `pin_bar OR trend_body_wick_reclaim`
+- refinement quanh winner:
+  - thêm freshness filter không giúp
+  - thêm body cap làm mất lợi thế mới
+- strategy thật đã patch theo winner và verify lại trên cache windows
 
 ## Phát hiện quan trọng về alignment
 
@@ -206,29 +197,14 @@ Vì thế ở trạng thái hiện tại, strategy phụ thuộc mạnh vào cá
 - monkey-patch `should_long()`, `should_short()`, `go_long()`, `go_short()` để xem engine có phát tín hiệu thật không
 - soi trực tiếp candle runtime của Jesse để xác nhận bug `_get_candle(0)`
 
-## Việc nên làm tiếp theo
+## Nơi xem kết luận hiện tại
 
-Ưu tiên cao:
-
-1. Làm strategy bớt nhạy với alignment
-2. Nếu test tiếp entry candle thì nên thêm filter nhỏ cho `trend_body`, không nên mở rộng pin bar thô
-3. Mở rộng backtest dataset để xem `overlap FVG` có còn ổn không
-
-Ưu tiên phụ:
-
-4. Tạo script backtest riêng để sweep:
-
-- `warm_up_candles`
-- timeframe
-- rule entry variant
-
-5. Nếu tiếp tục dùng `1h`, cần xác định rõ Jesse đang resample candle theo phase nào trong từng mode/backtest setup.
+- current conclusion / open questions / next step:
+  - `docs/state/smc_fvg_pinbar_state.md`
+- raw metrics và experiment log:
+  - `docs/research/smc_fvg_pinbar_backtest_results.md`
 
 ## Lưu ý
-
-File strategy hiện đã có thay đổi local chưa commit:
-
-- `strategies/SMC_FVG_PinBar/__init__.py`
 
 Nếu quay lại debug tiếp, nên bắt đầu từ:
 
