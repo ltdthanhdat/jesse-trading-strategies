@@ -1,6 +1,6 @@
 # SMC_FVG_PinBar Current State
 
-Ngày cập nhật: 2026-05-13
+Ngày cập nhật: 2026-05-14
 
 Mục đích:
 - lưu kết luận working state hiện tại
@@ -18,6 +18,10 @@ Mục đích:
   - `low <= fvg.top`
 - Entry signal hiện tại:
   - `pin_bar`
+    - không bắt buộc màu nến cùng hướng trade
+    - `PIN_BAR_BODY_RATIO = 0.33`
+    - `PIN_BAR_WICK_TO_BODY = 2.25`
+    - `PIN_BAR_CLOSE_EXTREME_RATIO = 0.30`
   - hoặc `trend_body` nhưng phải có `wick reclaim` trong FVG
   - hoặc `displacement_break` nhưng phải có `wick reclaim` trong FVG
 - Không đổi trong phase hiện tại:
@@ -72,6 +76,12 @@ Mục đích:
 - vấn đề đúng là không chỉ nằm ở `pin bar` quá chặt
 - thêm `trend_body` chỉ hợp lý khi có `wick reclaim` để tránh momentum trade rác
 - `displacement_break` hoạt động như một confirmation kiểu displacement-close khỏi FVG, gần hơn với cách nhiều tài liệu FVG mô tả việc chờ candle mạnh xác nhận sau khi reclaim
+- trade thua thêm ở cache `1740495600000-1740873540000-...` đúng là trade `displacement`
+- guard hẹp cho `displacement` đã test:
+  - `close vẫn nằm trong FVG`
+  - `FVG age >= 5`
+  - `overshoot <= 0.2 * FVG height`
+  - cả 3 đều loại được losing short cũ mà không làm mất 2 trade thắng mới ở `2026-04`
 - entry logic hiện tại giữ nguyên baseline tốt:
   - `trades_count = 4`
   - `net_profit_percentage = 0.73935024987001`
@@ -84,21 +94,88 @@ Mục đích:
     - `2026-03` có `1 trade`
     - `2026-04` có `5 trades`
     - run continuous `2026-03 -> 2026-04` còn âm nhẹ, nhưng đã đỡ hơn nhiều nhờ thêm `2` trade thắng giữa và cuối `2026-04`
+- nới nhẹ `displacement` để tăng số lệnh chưa ra winner:
+  - nới `body_ratio` từ `0.6 -> 0.55` không thêm trade
+  - nới `close near extreme` từ `0.2 -> 0.25` có thêm trade trên recent data
+  - nhưng profit và win rate recent xấu đi rõ
+- sweep `pin_bar` hẹp trên winner hiện tại:
+  - `wick_to_body 1.75`
+  - `close_extreme_ratio 0.30`
+  - bỏ ràng buộc màu nến
+  - cả 3 đều không tạo thêm trade nào
+- chỉ variant `pin_bar_intent_relaxed` tạo thêm trade thật:
+  - baseline `4 -> 5`
+  - recent continuous `7 -> 10`
+  - recent `2026-04` `5 -> 7`
+  - nhưng baseline degrade rõ:
+    - `net_profit_percentage 0.7393% -> 0.4100%`
+    - `max_drawdown -0.1352 -> -0.3269`
+    - `win_rate 0.75 -> 0.6`
+- đã salvage được nhánh này bằng cách siết lại `wick/body`:
+  - giữ `body_ratio = 0.33`
+  - giữ `close_extreme_ratio = 0.30`
+  - giữ `no_color`
+  - tăng `wick_to_body` lên `2.25`
+- kết quả trên 5 cache mục tiêu:
+  - baseline giữ nguyên winner cũ:
+    - `4 trades`
+    - `0.73935024987001%`
+    - `max_drawdown -0.13520595720001305`
+  - recent continuous `2026-03 -> 2026-04`:
+    - `7 -> 10 trades`
+    - `-0.04465644600880868% -> 0.7134234949907934%`
+  - recent `2026-04`:
+    - `5 -> 7 trades`
+    - `0.42577161733199426% -> 0.8749591917543952`
+- `wick_to_body = 2.50` không cho thêm lợi ích so với `2.25`
+- sweep `trend_body` refinement hẹp:
+  - nới `body_ratio` xuống `0.50`
+  - nới `close near extreme` lên `0.20`
+  - nới `wick_reclaim` sang `touch 0.40 / close 0.60`
+  - tất cả đều không đổi kết quả
+- chỉ khi nới mạnh hơn sang `touch 0.45 / close 0.55` mới thêm trade:
+  - recent continuous `7 -> 8`
+  - recent `2026-04` `5 -> 6`
+  - nhưng quality xấu đi rõ, nên loại
+- đã test thêm nhánh `union thêm start trade` bằng `engulfing / reversal reclaim` trên `12 cache`:
+  - `engulfing_strict`: tổng trade `30 -> 32`
+  - `engulfing_close_025`: tổng trade `30 -> 35`
+  - `reversal_loose`: tổng trade `30 -> 37`
+  - nhưng tất cả đều làm baseline xấu đi rõ
+- salvage tốt nhất của nhánh này là `engulfing_strict_fresh5`:
+  - baseline `4 -> 5 trades`
+  - `net_profit_percentage 0.7393% -> 0.4086%`
+  - `max_drawdown -0.1352 -> -0.3283`
+  - `win_rate 0.75 -> 0.6`
+  - vẫn không đủ tốt để giữ
+- winner hiện tại khi chạy rộng hơn trên `12 cache`:
+  - có trade ở `6/12` cache
+  - cả `6/12` cache có trade đều dương
+  - `total_trades_all_caches = 30`
 
 ## Open questions
 
 - strategy còn nhạy tới mức nào với candle alignment / resample phase ngoài bộ cache hiện có
 - `displacement_break` có phải là rule đủ general hay chỉ cứu được riêng cụm `2026-04`
-- vì sao cache `1740495600000-1740873540000-...` lại sinh thêm `1 short` thua ngay khi mở rộng bằng displacement
+- trade short thua lớn ở recent continuous `2026-04-09 -> 2026-04-11` hiện là trade `pin_bar`, không phải `displacement`
+- nếu mục tiêu tiếp tục tăng trade count, nên mở tiếp ở nhánh nào:
+  - `pin_bar` đã có candidate mới tốt hơn trên bộ cache hiện tại; cần xác nhận robustness rộng hơn
+  - `trend_body` hiện gần như không còn headroom khi chỉ refine hẹp
+  - `engulfing / reversal` union cũng chưa ra winner
+  - hay debug coverage theo regime / boundary trước
 
 ## Next recommended step
 
-1. Inspect trực tiếp trade thua mới ở cache `1740495600000-1740873540000-...`
-2. Inspect 2 trade thắng mới ở `2026-04` để xem có thật sự là mẫu displacement tốt, lặp lại được không
-3. So sánh state / active FVG / signal candle giữa:
-   - `2026-04` standalone
-   - `2026-03 -> 2026-04` continuous
-4. Chưa union thêm signal khác nữa cho tới khi hiểu rõ trade mới tốt/xấu này
+1. Không mở rộng thêm `displacement` bằng rule lỏng hơn lúc này
+2. Không mở thêm union `engulfing / reversal` theo hướng hiện tại nữa
+3. Nếu muốn vá quality trước:
+   - patch guard `displacement close still inside FVG`
+4. Nếu mục tiêu chính vẫn là tăng trade count:
+   - nhánh còn đáng giữ nhất vẫn là `pin_bar` current winner
+   - bước tiếp theo nên là:
+     - chạy rộng hơn trên thêm windows / thêm symbol để kiểm tra robustness thật
+     - hoặc inspect coverage theo regime / boundary thay vì mở thêm candle type mới
+5. Song song, inspect trade short thua lớn ở recent continuous vì đây vẫn là nguồn kéo PnL xuống mạnh nhất
 
 ## Related files
 

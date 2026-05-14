@@ -1,6 +1,6 @@
 # SMC_FVG_PinBar Notes
 
-Ngày cập nhật: 2026-05-13
+Ngày cập nhật: 2026-05-14
 
 ## Mục tiêu
 
@@ -193,6 +193,104 @@ Update 2026-05-13:
 - kết luận:
   - đây là union đầu tiên tăng coverage mà không làm baseline xấu đi
   - nhưng chưa thể xem là solved vì trade mới vẫn chưa sạch hoàn toàn
+
+Update 2026-05-14:
+
+- đã inspect lại cụm trade mới quanh `displacement`
+- xác nhận:
+  - losing short ở cache `1740495600000-1740873540000-...` là trade `displacement`
+  - 2 trade thắng mới quan trọng trong `2026-04` vẫn giữ được khi thêm guard hẹp cho displacement
+- 3 guard hẹp đã test:
+  - `close vẫn nằm trong FVG`
+  - `FVG age >= 5`
+  - `overshoot <= 0.2 * FVG height`
+- cả 3 cho ra cùng kết quả trên bộ cache đã test:
+  - loại losing short cũ
+  - không làm mất baseline
+  - không làm mất recent winners
+- nhưng đây là hướng tăng quality, không phải tăng trade count
+- đã test nới nhẹ `displacement_break`:
+  - `body_ratio 0.6 -> 0.55`: không thêm trade
+  - `close near extreme 0.2 -> 0.25`: có thêm trade trên recent data, nhưng quality giảm rõ
+- kết luận mới:
+  - chưa có `displacement` variant nào vừa tăng trade count vừa giữ quality đủ tốt
+  - trade short thua lớn ở recent continuous vẫn là trade `pin_bar`, không phải `displacement`
+
+Update 2026-05-14 thêm:
+
+- đã sweep tiếp `pin_bar` hẹp ngay trên winner hiện tại, tức là:
+  - chỉ đổi branch `pin_bar`
+  - giữ nguyên `trend_body` và `displacement`
+- các relax nhỏ đơn lẻ:
+  - `wick_to_body 2.0 -> 1.75`
+  - `close_extreme_ratio 0.25 -> 0.30`
+  - bỏ ràng buộc màu nến
+  - đều không tạo thêm trade nào trên bộ cache đã test
+- theo intent hiện tại, `pin_bar` được chấp nhận không cần cùng màu với hướng trade
+- trên bộ cache đã test, thay đổi này không làm đổi metrics
+- chỉ variant `pin_bar_intent_relaxed` tạo thêm trade thật:
+  - baseline `4 -> 5`
+  - recent continuous `7 -> 10`
+  - recent `2026-04` `5 -> 7`
+- nhưng variant này làm baseline xấu đi rõ:
+  - profit giảm
+  - drawdown tăng mạnh
+  - win rate giảm
+- kết luận:
+  - relax pin bar kiểu đơn biến đã gần chạm trần, không còn tín hiệu
+  - nếu muốn đi tiếp nhánh pin bar, nên inspect các trade mới của `pin_bar_intent_relaxed` rồi thêm filter hẹp
+
+Update 2026-05-14 thêm nữa:
+
+- đã sweep tiếp nhánh `trend_body` quanh winner hiện tại
+- các nới lỏng nhỏ ở shape:
+  - `body_ratio 0.55 -> 0.50`
+  - `close near extreme 0.15 -> 0.20`
+  - hoặc kết hợp 2 cái
+  - đều không đổi kết quả trên bộ cache đã test
+- nới `wick_reclaim` nhẹ sang `touch 0.40 / close 0.60` cũng không đổi gì
+- chỉ khi nới mạnh hơn sang `touch 0.45 / close 0.55` mới thêm trade
+  - nhưng kéo quality recent xuống rõ
+- kết luận:
+  - `trend_body` hiện gần như không còn headroom nếu chỉ refine hẹp
+  - nhánh còn đáng nghiên cứu hơn vẫn là inspect / salvage `pin_bar_intent_relaxed`
+
+Update 2026-05-14 cuối:
+
+- đã inspect `pin_bar_intent_relaxed` trade-by-trade
+- sau đó đã test tiếp hướng đúng theo mục tiêu `tăng start trade`:
+  - union thêm `engulfing / reversal reclaim`
+  - chạy rộng trên `12 cache`
+- kết quả:
+  - nhánh này đúng là mở thêm lệnh
+  - nhưng baseline degrade rõ gần như ở mọi variant
+  - `engulfing_strict_fresh5` là bản salvage đỡ nhất
+  - nhưng vẫn thua winner hiện tại:
+    - baseline `4 trades / 0.7393% / DD -0.1352 / WR 0.75`
+    - so với `5 trades / 0.4086% / DD -0.3283 / WR 0.6`
+- kết luận mới:
+  - nếu mục tiêu là tăng tỉ lệ vào lệnh, `union thêm start trade` là ý đúng để test
+  - nhưng ít nhất với family `engulfing / reversal reclaim`, chưa ra winner
+  - các nhánh mở rộng candle type mới đang cho pattern lặp lại:
+    - trade count tăng
+    - baseline quality hỏng nhanh
+  - bước kế tiếp hợp lý hơn là:
+    - kiểm tra robustness rộng hơn
+    - hoặc debug coverage theo regime / boundary
+- trade baseline làm hỏng variant này là một bearish pin bar có:
+  - `body_ratio ~ 0.31`
+  - `wick/body ~ 2.23`
+- 3 trade recent mới có ích đều có `wick/body` mạnh hơn trade baseline xấu đó
+- chỉ cần siết lại `PIN_BAR_WICK_TO_BODY` lên `2.25` là:
+  - cắt đúng trade baseline xấu
+  - vẫn giữ toàn bộ improvement trên recent caches
+- `2.50` không cho thêm lợi ích so với `2.25`
+- kết luận mới:
+  - winner hiện tại đã chuyển sang nhánh pin bar mới:
+    - `PIN_BAR_BODY_RATIO = 0.33`
+    - `PIN_BAR_WICK_TO_BODY = 2.25`
+    - `PIN_BAR_CLOSE_EXTREME_RATIO = 0.30`
+    - không bắt buộc màu nến cùng hướng
 
 ## Phát hiện quan trọng về alignment
 

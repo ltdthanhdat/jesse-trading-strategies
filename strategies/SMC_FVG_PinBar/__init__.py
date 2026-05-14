@@ -26,9 +26,9 @@ class FVG:
 
 class SMC_FVG_PinBar(Strategy):
     # Parameters
-    PIN_BAR_BODY_RATIO = 0.3
-    PIN_BAR_WICK_TO_BODY = 2.0
-    PIN_BAR_CLOSE_EXTREME_RATIO = 0.25
+    PIN_BAR_BODY_RATIO = 0.33
+    PIN_BAR_WICK_TO_BODY = 2.25
+    PIN_BAR_CLOSE_EXTREME_RATIO = 0.30
 
     def _state(self) -> Dict:
         if "fvg_state" not in self.vars:
@@ -143,7 +143,7 @@ class SMC_FVG_PinBar(Strategy):
             close_near_high = close_price >= high_price - total_range * self.PIN_BAR_CLOSE_EXTREME_RATIO
             body_in_upper_range = min(open_price, close_price) >= low_price + total_range * (1 - self.PIN_BAR_BODY_RATIO)
             return (
-                close_price > open_price and
+                close_price >= open_price and
                 lower_wick >= self.PIN_BAR_WICK_TO_BODY * body and
                 upper_wick <= body and
                 body <= total_range * self.PIN_BAR_BODY_RATIO and
@@ -154,7 +154,7 @@ class SMC_FVG_PinBar(Strategy):
             close_near_low = close_price <= low_price + total_range * self.PIN_BAR_CLOSE_EXTREME_RATIO
             body_in_lower_range = max(open_price, close_price) <= high_price - total_range * (1 - self.PIN_BAR_BODY_RATIO)
             return (
-                close_price < open_price and
+                close_price <= open_price and
                 upper_wick >= self.PIN_BAR_WICK_TO_BODY * body and
                 lower_wick <= body and
                 body <= total_range * self.PIN_BAR_BODY_RATIO and

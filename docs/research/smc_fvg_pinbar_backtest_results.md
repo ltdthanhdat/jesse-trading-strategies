@@ -501,3 +501,351 @@ Conclusion:
   - next step là inspect trực tiếp:
     - losing short mới ở `1740495600000-1740873540000-...`
     - hai trade thắng mới ở `2026-04`
+
+### Experiment 2026-05-14 K: Displacement Guard Sweep
+
+Experiment:
+- hypothesis: trade thua mới ở cache `1740495600000-1740873540000-...` có thể bị loại bằng một guard hẹp chỉ áp vào `displacement`, mà không làm mất các trade thắng mới
+- file_changed: `scripts/sweep_smc_fvg_pinbar_displacement_variants.py`
+
+Datasets:
+- `1704067200000-1709337540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1740495600000-1740873540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1740873600000-1741046340000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1772323200000-1777593540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1775001600000-1777593540000-Binance Perpetual Futures-BTC-USDT.pickle`
+
+Results:
+- `current_winner`
+  - baseline: `4 trades / 0.73935024987001% / max_drawdown -0.13520595720001305 / win_rate 0.75`
+  - old losing cache `1740495600000-1740873540000-...`: `1 trade / -0.21995973902560087%`
+  - recent continuous `2026-03 -> 2026-04`: `7 trades / -0.04465644600880868%`
+  - recent `2026-04`: `5 trades / 0.42577161733199426%`
+- `displacement_close_inside_fvg`
+  - baseline giữ nguyên
+  - old losing cache: `0 trade`
+  - recent continuous giữ nguyên `7 trades / -0.04465644600880868%`
+  - recent `2026-04` giữ nguyên `5 trades / 0.42577161733199426%`
+- `displacement_age_ge_5`
+  - kết quả giống `displacement_close_inside_fvg` trên toàn bộ cache đã test
+- `displacement_overshoot_le_0_2h`
+  - kết quả cũng giống `displacement_close_inside_fvg` trên toàn bộ cache đã test
+- `displacement_close_inside_and_age_ge_5`
+  - kết quả cũng giống `displacement_close_inside_fvg` trên toàn bộ cache đã test
+
+Conclusion:
+- keep_or_discard: `discard as trade-count improvement, keep in mind as quality guard`
+- notes:
+  - losing short cũ đúng là trade `displacement`
+  - cả 4 guard hẹp đều loại được trade thua đó mà không đụng baseline hay 2 trade thắng mới ở `2026-04`
+  - nhưng chúng không tăng trade count trên bộ cache đang theo dõi
+  - guard đơn giản và dễ giải thích nhất là:
+    - với `displacement`, yêu cầu close vẫn nằm trong FVG
+
+### Experiment 2026-05-14 L: Looser Displacement Signal Sweep
+
+Experiment:
+- hypothesis: có thể nới rất nhẹ `displacement_break` để lấy thêm trade mới, miễn là giữ guard `close inside FVG`
+- file_changed: `none`
+
+Datasets:
+- `1704067200000-1709337540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1740495600000-1740873540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1740873600000-1741046340000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1772323200000-1777593540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1775001600000-1777593540000-Binance Perpetual Futures-BTC-USDT.pickle`
+
+Results:
+- `disp_close_inside_body055`
+  - không khác `displacement_close_inside_fvg`
+  - baseline giữ nguyên `4 trades`
+  - recent continuous giữ nguyên `7 trades / -0.04465644600880868%`
+  - recent `2026-04` giữ nguyên `5 trades / 0.42577161733199426%`
+- `disp_close_inside_extreme025`
+  - baseline giữ nguyên `4 trades / 0.73935024987001%`
+  - old losing cache vẫn `0 trade`
+  - recent continuous: `7 -> 8 trades`, nhưng `-0.04465644600880868% -> -0.21800460701361077%`
+  - recent `2026-04`: `5 -> 6 trades`, nhưng `0.42577161733199426% -> 0.2515960865055922%`
+  - `win_rate`: `0.7142857142857143 -> 0.625` trên recent continuous
+- `disp_close_inside_body055_extreme025`
+  - giống hệt `disp_close_inside_extreme025` trên toàn bộ cache đã test
+
+Conclusion:
+- keep_or_discard: `discard looser displacement variants`
+- notes:
+  - nới `body_ratio` từ `0.6 -> 0.55` không đem thêm trade nào
+  - nới `close near extreme` từ `0.2 -> 0.25` có tăng trade:
+    - recent continuous `7 -> 8`
+    - recent `2026-04` `5 -> 6`
+  - nhưng quality xấu đi rõ:
+    - net profit recent continuous tệ hơn
+    - net profit recent `2026-04` giảm
+    - win rate recent giảm
+  - chưa có `displacement` variant nào vừa tăng trade count vừa giữ quality đủ tốt
+
+### Experiment 2026-05-14 M: Narrow Pin Bar Sweep On Current Winner
+
+Experiment:
+- hypothesis: có thể nới rất nhẹ nhánh `pin_bar` bên trong winner hiện tại để tăng trade count, trong khi vẫn giữ `trend_body` và `displacement` như cũ
+- file_changed: `scripts/sweep_smc_fvg_pinbar_narrow_pinbar_variants.py`
+
+Datasets:
+- `1704067200000-1709337540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1740495600000-1740873540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1740873600000-1741046340000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1772323200000-1777593540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1775001600000-1777593540000-Binance Perpetual Futures-BTC-USDT.pickle`
+
+Results:
+- `pin_bar_wick_1_75`
+  - không khác `current_winner` trên toàn bộ cache đã test
+- `pin_bar_close_0_30`
+  - không khác `current_winner` trên toàn bộ cache đã test
+- `pin_bar_no_color`
+  - không khác `current_winner` trên toàn bộ cache đã test
+- `pin_bar_intent_relaxed`
+  - baseline:
+    - `4 -> 5 trades`
+    - `0.73935024987001% -> 0.41003236528600734%`
+    - `max_drawdown -0.13520595720001305 -> -0.3269015171099343`
+    - `win_rate 0.75 -> 0.6`
+  - old losing cache `1740495600000-1740873540000-...`
+    - giữ nguyên `1 trade / -0.21995973902560087%`
+  - recent continuous `2026-03 -> 2026-04`:
+    - `7 -> 10 trades`
+    - `-0.04465644600880868% -> 0.7134234949907934%`
+    - `win_rate 0.7142857142857143 -> 0.8`
+    - `max_drawdown` gần như giữ nguyên
+  - recent `2026-04`:
+    - `5 -> 7 trades`
+    - `0.42577161733199426% -> 0.8749591917543952%`
+    - `win_rate 0.8 -> 0.8571428571428571`
+    - `max_drawdown` gần như giữ nguyên
+
+Conclusion:
+- keep_or_discard: `discard as global winner, keep as promising recent-data branch`
+- notes:
+  - 3 variant hẹp đầu không thêm bất kỳ trade nào
+  - `pin_bar_intent_relaxed` là variant pin bar đầu tiên tăng trade count thật trên bộ cache current winner:
+    - baseline `4 -> 5`
+    - recent continuous `7 -> 10`
+    - recent `2026-04` `5 -> 7`
+  - nhưng baseline degrade rõ:
+    - profit giảm mạnh
+    - drawdown xấu hơn khoảng `2.4x`
+    - win rate giảm
+  - đây chưa phải winner để patch vào strategy chung
+  - nhưng đáng giữ lại như một nhánh research nếu muốn tối ưu cho regime recent hơn là giữ baseline cũ
+
+### Experiment 2026-05-14 N: Trend Body Refinement Sweep
+
+Experiment:
+- hypothesis: có thể nới rất nhẹ nhánh `trend_body + wick_reclaim` để tăng trade count mà không làm winner hiện tại gãy
+- file_changed: `scripts/sweep_smc_fvg_pinbar_trend_body_refinements.py`
+
+Datasets:
+- `1704067200000-1709337540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1740495600000-1740873540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1740873600000-1741046340000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1772323200000-1777593540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1775001600000-1777593540000-Binance Perpetual Futures-BTC-USDT.pickle`
+
+Results:
+- `trend_body_body_050`
+  - không khác `current_winner` trên toàn bộ cache đã test
+- `trend_body_close_020`
+  - không khác `current_winner`
+- `trend_body_body_050_close_020`
+  - không khác `current_winner`
+- `trend_body_touch_040_close_060`
+  - không khác `current_winner`
+- `trend_body_body_050_touch_040_close_060`
+  - không khác `current_winner`
+- `trend_body_touch_045_close_055`
+  - baseline giữ nguyên `4 trades / 0.73935024987001%`
+  - old losing cache giữ nguyên `1 trade / -0.21995973902560087%`
+  - recent continuous `2026-03 -> 2026-04`:
+    - `7 -> 8 trades`
+    - `-0.04465644600880868% -> -0.5054223026332088%`
+    - `max_drawdown -0.7070645131663 -> -1.1206365181369415`
+    - `win_rate 0.7142857142857143 -> 0.625`
+  - recent `2026-04`:
+    - `5 -> 6 trades`
+    - `0.42577161733199426% -> -0.03718914604960579%`
+    - `max_drawdown -0.19404387607621087 -> -0.4609969101599942`
+    - `win_rate 0.8 -> 0.6666666666666666`
+
+Conclusion:
+- keep_or_discard: `discard all tested trend_body refinements`
+- notes:
+  - trend body shape hiện tại khá ổn định; các nới lỏng nhỏ không mở thêm trade
+  - chỉ khi nới `wick_reclaim` khá mạnh sang `touch 0.45 / close 0.55` mới tăng trade count
+  - nhưng quality recent xấu đi rất rõ, nên không giữ
+  - chưa có `trend_body` refinement nào thắng current winner
+
+### Experiment 2026-05-14 O: Salvage Pin Bar Intent Relaxed With Stronger Wick Ratio
+
+Experiment:
+- hypothesis: `pin_bar_intent_relaxed` chỉ hỏng vì thêm một trade baseline có wick/body chưa đủ mạnh; nếu siết lại riêng `wick/body`, có thể giữ được recent gains mà không làm baseline xấu đi
+- file_changed: `strategies/SMC_FVG_PinBar/__init__.py`
+
+Datasets:
+- `1704067200000-1709337540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1740495600000-1740873540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1740873600000-1741046340000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1772323200000-1777593540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1775001600000-1777593540000-Binance Perpetual Futures-BTC-USDT.pickle`
+
+Results:
+- `pin_bar_intent_relaxed`
+  - baseline:
+    - `5 trades`
+    - `net_profit_percentage = 0.41003236528600734`
+    - `max_drawdown = -0.3269015171099343`
+    - `win_rate = 0.6`
+  - recent continuous:
+    - `10 trades`
+    - `net_profit_percentage = 0.7134234949907934`
+  - recent `2026-04`:
+    - `7 trades`
+    - `net_profit_percentage = 0.8749591917543952`
+- `pin_bar_intent_relaxed_wick_2_25`
+  - baseline:
+    - quay về đúng baseline winner cũ
+    - `4 trades`
+    - `net_profit_percentage = 0.73935024987001`
+    - `max_drawdown = -0.13520595720001305`
+    - `win_rate = 0.75`
+  - old losing cache `1740495600000-1740873540000-...`
+    - giữ nguyên `1 trade / -0.21995973902560087%`
+  - positive cache `1740873600000-1741046340000-...`
+    - giữ nguyên `1 trade / 0.8326383061788064%`
+  - recent continuous:
+    - giữ nguyên toàn bộ improvement của `intent_relaxed`
+    - `10 trades`
+    - `net_profit_percentage = 0.7134234949907934`
+    - `max_drawdown = -0.7070672870937544`
+    - `win_rate = 0.8`
+  - recent `2026-04`:
+    - giữ nguyên toàn bộ improvement của `intent_relaxed`
+    - `7 trades`
+    - `net_profit_percentage = 0.8749591917543952`
+    - `max_drawdown = -0.19404624538188475`
+    - `win_rate = 0.8571428571428571`
+- `pin_bar_intent_relaxed_wick_2_50`
+  - kết quả giống hệt `pin_bar_intent_relaxed_wick_2_25` trên toàn bộ cache đã test
+
+Conclusion:
+- keep_or_discard: `keep pin_bar_intent_relaxed_wick_2_25`
+- notes:
+  - trade baseline xấu của `intent_relaxed` là một bearish pin bar có `wick/body` khoảng `2.23`
+  - siết `PIN_BAR_WICK_TO_BODY` lên `2.25` loại đúng trade này
+  - đồng thời vẫn giữ được `3` trade mới có ích trên recent data
+  - đây là candidate đầu tiên tăng trade count trên recent caches mà không làm baseline 5-cache đang theo dõi xấu đi
+
+### Experiment 2026-05-14 P: Guarded Engulfing / Reversal Union Sweep
+
+Experiment:
+- hypothesis: nếu mục tiêu là mở thêm `start trade`, có thể union thêm một nhánh `engulfing / reversal reclaim` bám FVG mà vẫn giữ được quality tốt hơn các union lỏng trước đó
+- file_changed: `scripts/sweep_smc_fvg_pinbar_engulfing_union.py`
+
+Datasets:
+- `1703689200000-1704067140000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1703878200000-1704067140000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1704067200000-1709337540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1740495600000-1740873540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1740873600000-1740959940000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1740873600000-1741046340000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1748617200000-1748995140000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1772323200000-1775001540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1772323200000-1777593540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1774245600000-1775001540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1775001600000-1777593540000-Binance Perpetual Futures-BTC-USDT.pickle`
+- `1775001600000-1777679940000-Binance Perpetual Futures-BTC-USDT.pickle`
+
+Results:
+- `current_winner`
+  - `trade_windows = 6/12`
+  - `positive_windows = 6/12`
+  - `total_trades_all_caches = 30`
+  - baseline:
+    - `4 trades`
+    - `net_profit_percentage = 0.73935024987001`
+    - `max_drawdown = -0.13520595720001305`
+    - `win_rate = 0.75`
+  - recent continuous `2026-03 -> 2026-04`:
+    - `10 trades`
+    - `net_profit_percentage = 0.7134234949907934`
+    - `max_drawdown = -0.7070672870937544`
+    - `win_rate = 0.8`
+  - recent `2026-04`:
+    - `7 trades`
+    - `net_profit_percentage = 0.8749591917543952`
+    - `max_drawdown = -0.19404624538188475`
+    - `win_rate = 0.8571428571428571`
+- `union_engulfing_strict`
+  - `trade_windows = 6/12`
+  - `positive_windows = 6/12`
+  - `total_trades_all_caches = 32`
+  - baseline:
+    - `6 trades`
+    - `net_profit_percentage = 0.022956172962008876`
+    - `max_drawdown = -0.7111361310028985`
+    - `win_rate = 0.5`
+  - recent continuous:
+    - giữ nguyên như `current_winner`
+  - recent `2026-04`:
+    - giữ nguyên như `current_winner`
+- `union_engulfing_strict_fresh5`
+  - baseline:
+    - `5 trades`
+    - `net_profit_percentage = 0.40858390981921183`
+    - `max_drawdown = -0.3283393221435005`
+    - `win_rate = 0.6`
+  - recent continuous:
+    - giữ nguyên như `current_winner`
+  - recent `2026-04`:
+    - giữ nguyên như `current_winner`
+- `union_engulfing_strict_fresh8`
+  - kết quả gần như giống `union_engulfing_strict`
+- `union_engulfing_close_025`
+  - `total_trades_all_caches = 35`
+  - baseline:
+    - `6 trades`
+    - `net_profit_percentage = 0.022956172962008876`
+    - `max_drawdown = -0.7111361310028985`
+    - `win_rate = 0.5`
+  - recent continuous `2026-03 -> 2026-04`:
+    - `10 -> 11 trades`
+    - `0.7134234949907934% -> 0.5387642517295912%`
+    - `max_drawdown -0.7070672870937544 -> -0.8792701029526007`
+    - `win_rate 0.8 -> 0.7272727272727273`
+  - recent `2026-04`:
+    - `7 -> 8 trades`
+    - `0.8749591917543952% -> 0.7000223637779932%`
+    - `win_rate 0.8571428571428571 -> 0.75`
+- `union_reversal_loose`
+  - `total_trades_all_caches = 37`
+  - baseline:
+    - `8 trades`
+    - `net_profit_percentage = 0.5282855358792065`
+    - `max_drawdown = -0.7111331257562581`
+    - `win_rate = 0.625`
+  - recent continuous:
+    - giống `union_engulfing_close_025`
+  - recent `2026-04`:
+    - giống `union_engulfing_close_025`
+
+Conclusion:
+- keep_or_discard: `discard all tested engulfing / reversal unions`
+- notes:
+  - nhánh này đúng là tăng được `start trade`
+  - nhưng phần tăng trade chủ yếu trả giá bằng baseline tệ hơn rõ:
+    - drawdown baseline xấu hơn mạnh
+    - win rate baseline giảm
+    - profit baseline tụt rõ
+  - variant salvage tốt nhất là `union_engulfing_strict_fresh5`
+    - baseline chỉ còn xấu vừa phải hơn các variant khác
+    - nhưng vẫn thua `current_winner` quá rõ
+  - chưa có union `engulfing / reversal` nào thắng được winner hiện tại
+  - trên bộ `12 cache`, winner hiện tại đang có trade ở `6/12` cache và tất cả `6` cache đó đều dương
