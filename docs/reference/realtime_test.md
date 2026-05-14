@@ -15,7 +15,7 @@ Mục tiêu:
   - không phụ thuộc tier license có hỗ trợ nhiều trading routes hay không
 
 Nếu account/license của Jesse hỗ trợ nhiều routes và muốn mở rộng sau khi test ổn:
-- basket research gần nhất:
+- basket live đề xuất hiện tại:
   - `PLAY-USDT`
   - `BIO-USDT`
   - `SPACE-USDT`
@@ -25,7 +25,6 @@ Nếu account/license của Jesse hỗ trợ nhiều routes và muốn mở rộ
   - `D-USDT`
   - `YGG-USDT`
   - `STG-USDT`
-  - `我踏马来了-USDT`
   - `BTC-USDT`
 
 ## Preconditions
@@ -77,8 +76,15 @@ make run
 
 Hiện tại repo này chưa có `LICENSE_API_TOKEN` trong `.env`, nên bước `uv run jesse install-live` sẽ không chạy tiếp được.
 
+Các biến được chừa sẵn trong `.env.example` để điền sau:
+- `LICENSE_API_TOKEN`
+- `BINANCE_API_KEY`
+- `BINANCE_API_SECRET`
+- `BINANCE_TESTNET_API_KEY`
+- `BINANCE_TESTNET_API_SECRET`
+
 ## Notes
 
-- Không mở rộng sang `11` symbol ngay ở vòng đầu.
+- Không mở rộng sang `10` symbol ngay ở vòng đầu.
 - Không đổi strategy logic trong phase này.
 - Nếu plugin/license chỉ cho `1` route, giữ nguyên `BTC-USDT 1h` cho vòng test đầu tiên.

@@ -66,15 +66,16 @@ make run
 
 Ứng dụng mặc định chạy ở `http://localhost:9000`.
 
-## Realtime Test
+## Live Trade
 
-Repo hiện mới ở trạng thái `ready for cutover`, chưa thể cài realtime plugin nếu thiếu `LICENSE_API_TOKEN` trong `.env`.
+Repo hiện mới ở trạng thái `ready for cutover`, chưa thể cài live plugin nếu thiếu `LICENSE_API_TOKEN` trong `.env`.
 
 Flow tối thiểu:
 
 ```bash
 cp .env.example .env
 # điền LICENSE_API_TOKEN
+# nếu muốn, chừa sẵn BINANCE_* trong .env để thêm sau
 make up
 uv run jesse install-live
 make run
