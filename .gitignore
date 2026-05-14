@@ -14,6 +14,10 @@ ENV/
 # Jesse
 storage/logs/
 storage/charts/
+storage/cache/
+storage/results/
+storage/downloads/
+storage/temp/cache_database.pickle
 
 # IDE
 .vscode/

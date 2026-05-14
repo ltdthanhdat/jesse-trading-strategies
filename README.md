@@ -66,6 +66,22 @@ make run
 
 Ứng dụng mặc định chạy ở `http://localhost:9000`.
 
+## Realtime Test
+
+Repo hiện mới ở trạng thái `ready for cutover`, chưa thể cài realtime plugin nếu thiếu `LICENSE_API_TOKEN` trong `.env`.
+
+Flow tối thiểu:
+
+```bash
+cp .env.example .env
+# điền LICENSE_API_TOKEN
+make up
+uv run jesse install-live
+make run
+```
+
+Runbook chi tiết: [docs/reference/realtime_test.md](docs/reference/realtime_test.md)
+
 ## Các lệnh tiện dụng
 
 ```bash
@@ -75,6 +91,7 @@ make up
 make down
 make ps
 make check
+make clean-research
 make run
 ```
 
@@ -102,3 +119,4 @@ Xem file mẫu tại [.env.example](.env.example).
 
 - Sau khi đổi tên thư mục project hoặc đổi máy, nếu môi trường Python bị lệch, chạy lại `uv sync`.
 - Repo hiện không có test suite riêng; kiểm tra cơ bản nên bắt đầu từ `py_compile`, `jesse run`, rồi backtest trong giao diện Jesse.
+- `make clean-research` sẽ xóa artifacts batch backtest sinh ra trong `storage/cache`, `storage/results/all_futures`, và recent temp caches không còn cần cho phase realtime.

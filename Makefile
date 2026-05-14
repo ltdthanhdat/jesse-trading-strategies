@@ -1,4 +1,4 @@
-.PHONY: help sync up down ps run check
+.PHONY: help sync up down ps run check clean-research
 
 help:
 	@printf "Targets:\n"
@@ -8,6 +8,7 @@ help:
 	@printf "  make ps     # show Docker Compose service status\n"
 	@printf "  make run    # run Jesse app locally\n"
 	@printf "  make check  # compile-check project Python files\n"
+	@printf "  make clean-research  # remove generated backtest caches/results\n"
 
 sync:
 	uv sync
@@ -26,3 +27,9 @@ run:
 
 check:
 	uv run python -m py_compile routes.py strategies/SMC_FVG_PinBar/__init__.py
+
+clean-research:
+	rm -rf storage/cache
+	rm -rf storage/results/all_futures
+	rm -f storage/temp/cache_database.pickle
+	rm -f storage/temp/177*-Binance\ Perpetual\ Futures-BTC-USDT.pickle

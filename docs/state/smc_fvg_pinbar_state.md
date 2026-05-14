@@ -152,12 +152,31 @@ Mục đích:
   - có trade ở `6/12` cache
   - cả `6/12` cache có trade đều dương
   - `total_trades_all_caches = 30`
+- check rộng hơn trên basket `11` symbol đã chọn, window `2026-03 -> 2026-04`:
+  - ở `1h`:
+    - `11/11` symbol dương
+    - `94` trades
+    - avg net profit `4.7545593374963335%`
+    - avg max drawdown `-1.1730067850778154`
+    - avg win rate `0.7958791208791208`
+  - ở `15m`:
+    - `6/11` symbol dương
+    - `352` trades
+    - avg net profit `0.45942588374099474%`
+    - avg max drawdown `-3.101054111185131`
+    - avg win rate `0.5188035001960029`
+  - kết luận hiện tại:
+    - `1h` vẫn là timeframe robust hơn rõ cho winner hiện tại
+    - `15m` tăng trade count mạnh nhưng chưa giữ được quality
 
 ## Open questions
 
 - strategy còn nhạy tới mức nào với candle alignment / resample phase ngoài bộ cache hiện có
 - `displacement_break` có phải là rule đủ general hay chỉ cứu được riêng cụm `2026-04`
 - trade short thua lớn ở recent continuous `2026-04-09 -> 2026-04-11` hiện là trade `pin_bar`, không phải `displacement`
+- nếu muốn mở branch `15m`, cần xác nhận:
+  - trade rác chủ yếu đến từ `pin_bar`, `trend_body`, hay `displacement`
+  - coin nào như `D-USDT` đang thực sự hợp lower timeframe hơn phần còn lại
 - nếu mục tiêu tiếp tục tăng trade count, nên mở tiếp ở nhánh nào:
   - `pin_bar` đã có candidate mới tốt hơn trên bộ cache hiện tại; cần xác nhận robustness rộng hơn
   - `trend_body` hiện gần như không còn headroom khi chỉ refine hẹp
@@ -175,6 +194,7 @@ Mục đích:
    - bước tiếp theo nên là:
      - chạy rộng hơn trên thêm windows / thêm symbol để kiểm tra robustness thật
      - hoặc inspect coverage theo regime / boundary thay vì mở thêm candle type mới
+     - không chuyển mặc định sang `15m` lúc này
 5. Song song, inspect trade short thua lớn ở recent continuous vì đây vẫn là nguồn kéo PnL xuống mạnh nhất
 
 ## Related files

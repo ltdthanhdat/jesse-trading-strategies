@@ -849,3 +849,60 @@ Conclusion:
     - nhưng vẫn thua `current_winner` quá rõ
   - chưa có union `engulfing / reversal` nào thắng được winner hiện tại
   - trên bộ `12 cache`, winner hiện tại đang có trade ở `6/12` cache và tất cả `6` cache đó đều dương
+
+### Experiment 2026-05-14 Q: Selected 11-Symbol Recent Multi-Timeframe Check
+
+Experiment:
+- hypothesis: winner hiện tại có thể giữ quality trên basket `11` symbol đã chọn ở `1h`, còn `15m` có thể tăng trade count nhưng degrade rõ
+- file_changed:
+  - `scripts/backtest_smc_fvg_pinbar_selected_symbols_recent.py`
+- window:
+  - `2026-03-01 00:00 UTC -> 2026-04-30 23:59 UTC`
+- symbols:
+  - `PLAY-USDT`
+  - `BIO-USDT`
+  - `SPACE-USDT`
+  - `PENDLE-USDT`
+  - `BR-USDT`
+  - `BASED-USDT`
+  - `D-USDT`
+  - `YGG-USDT`
+  - `STG-USDT`
+  - `我踏马来了-USDT`
+  - `BTC-USDT`
+- raw outputs:
+  - `storage/results/all_futures/smc_fvg_pinbar_selected_symbols_recent_multi_tf.json`
+  - `storage/results/all_futures/smc_fvg_pinbar_selected_symbols_recent_multi_tf.csv`
+
+Result:
+- `1h`
+  - profitable symbols: `11 / 11`
+  - total trades: `94`
+  - side mix: `56 long / 38 short`
+  - avg net profit: `4.7545593374963335%`
+  - avg max drawdown: `-1.1730067850778154`
+  - avg win rate: `0.7958791208791208`
+  - best: `BIO-USDT` `10.67593459333302%` `13 trades`
+  - worst: `我踏马来了-USDT` `0.5060474614549526%` `8 trades`
+- `15m`
+  - profitable symbols: `6 / 11`
+  - total trades: `352`
+  - side mix: `199 long / 153 short`
+  - avg net profit: `0.45942588374099474%`
+  - avg max drawdown: `-3.101054111185131`
+  - avg win rate: `0.5188035001960029`
+  - best: `D-USDT` `11.357793514238562%` `34 trades`
+  - worst: `PLAY-USDT` `-7.845956977004617%` `31 trades`
+- per-symbol compare:
+  - `15m` thắng `1h` rõ chỉ ở `D-USDT`
+  - `SPACE-USDT`, `PENDLE-USDT`, `BR-USDT`, `BASED-USDT` vẫn dương ở `15m` nhưng thua `1h`
+  - `PLAY-USDT`, `YGG-USDT`, `STG-USDT`, `我踏马来了-USDT`, `BTC-USDT` đảo từ dương ở `1h` sang âm ở `15m`
+- keep_or_discard: `keep 1h as current robust timeframe; discard 15m as default expansion target for now`
+- notes:
+  - `15m` đúng là mở trade count rất mạnh: `94 -> 352`
+  - nhưng quality giảm rõ trên basket đã chọn:
+    - profitable symbols `11/11 -> 6/11`
+    - avg drawdown xấu hơn mạnh
+    - avg win rate tụt từ `~0.796 -> ~0.519`
+  - nếu muốn nghiên cứu tiếp `15m`, không nên coi là port thẳng từ `1h`
+  - cần xem nó như một nhánh strategy riêng với logic / guard riêng cho lower timeframe
